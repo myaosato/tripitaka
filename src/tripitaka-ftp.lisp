@@ -1,16 +1,7 @@
 ;;;; simple ftp client
 ;;;; Recently this is test(developping) version
 ;;;;
-(eval-when (:load-toplevel :compile-toplevel)
-  (ql:quickload :cl-ftp :silent t)
-  (ql:quickload :usocket :silent t)
-  (ql:quickload :cl-ppcre :silent t)
-  (ql:quickload :cl-fad :silent t))
-(defpackage :tripitaka-ftp
-  (:use :common-lisp)
-  (:export))
-
-(in-package :tripitaka-ftp)
+(in-package :tripitaka)
 
 (defun format-hash-key-value (stream hash-map)
   (maphash #'(lambda (key value) (format stream "~a: ~a~%" key value)) hash-map))

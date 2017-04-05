@@ -3,21 +3,7 @@
 ;;;;
 
 ;;; Package
-(eval-when (:load-toplevel :compile-toplevel)
-  (ql:quickload :cl-fad :silent t)
-  (ql:quickload :cl-ppcre :silent t)
-  (ql:quickload :local-time :silent t)
-  (ql:quickload :cl-markdown :silent t)
-  (load "tripitaka-atom"))
-(defpackage :tripitaka-html
-  (:use :common-lisp)
-  (:export :read-rc
-           :set-project
-           :file2plist
-           :make-new-project
-           :make-new-file
-           :make-html)
-(in-package :tripitaka-html)
+(in-package :tripitaka)
 
 ;;; Define special valiable
 ;;;
@@ -28,6 +14,7 @@
   (cl-fad:pathname-as-directory "~/default-project/"))
 (defvar *home-dir* "")
 (defvar *dat-dir* "")
+(defvar *theme-dir* "")
 (defvar *project-file* "")
 (defvar *project* nil)
 (defvar *site-url* "")
@@ -40,8 +27,7 @@
     (do ((plist nil)
          (sym (read in nil nil) (read in nil nil)))
         ((not sym) plist)
-      (setf (getf plist sym)
-            (read in nil nil)))))
+      (setf plist (append plist (list sym (read in nil nil)))))))
 
 (defun get-date-string (arg)
   "get date as string YYYYMMDD separated by arg"
@@ -71,7 +57,8 @@
 ;;;
 (defun read-rc ()
   "read .tripitakarc"
-  (setf *projects-plist* (read-sym-str-file *rc-file*)))
+  (setf *projects-plist* (read-sym-str-file *rc-file*))
+  (symbol-name (first *projects-plist*)))
 
 (defun load-project ()
   "read config file"
@@ -84,7 +71,11 @@
   (setf *project-file* (merge-pathnames ".project" *project-dir*))
   (setf *home-dir* (merge-pathnames "home/" *project-dir*))
   (setf *dat-dir* (merge-pathnames "dat/" *project-dir*))
+  (setf *theme-dir* (merge-pathnames "theme/" *project-dir*))
   (load-project))
+
+(defun ready ()
+  (set-project (read-rc)))
 
 (defun project (name)
   "get value from config"
@@ -99,12 +90,27 @@
 (defun find-text-keyword (line)
   (cl-ppcre:scan "^:TEXT" (string-trim " " (string-upcase line))))
 
+(defun file-list (&optional (regex "[^~]$") (dir *dat-dir*))
+  (loop for path in (cl-fad::list-directory dir)
+     when (cl-ppcre:scan regex (namestring path))
+     collect (pathname-name path)))
+
+(defun diary< (diary1 diary2)
+  (let ((lst1 (mapcar #'parse-integer (cl-ppcre:split "-" diary1)))
+        (lst2 (mapcar #'parse-integer (cl-ppcre:split "-" diary2))))
+    (cond ((> (first lst1) (first lst2)) t)
+          ((< (first lst1) (first lst2)) nil)
+          ((> (second lst1) (second lst2)) t)
+          (t nil))))
+
+(defun get-file-path (name)
+  (merge-pathnames (format nil "~A.dat" name) *dat-dir*))
 ;;; Make plist from file 
 ;;;
 (defun md-to-html-string (target)
   (nth 1 (multiple-value-list (cl-markdown:markdown target :stream nil))))
 
-(defun file2plist (name)
+(defun dat-to-plist (name)
   "make plist as article from file."
   (let ((plist nil) sym val)
     (with-open-file (in (merge-pathnames (format nil "~A.dat" name) *dat-dir*))
@@ -122,7 +128,7 @@
 
 ;;; Make new files
 ;;;
-(defun make-new-project (name)
+(defun make-project (name)
   (let* ((pdir (getf *project* name))
          (conf-file (merge-pathnames ".project" pdir)))
     (with-open-file (out conf-file :direction :output :if-exists :supersede)
@@ -131,29 +137,36 @@
       (format out ":author \"\"~%")
       (format out ":pubyear \"\"~%"))))
 
-(defun make-new-file (name &key
-                             (title "")
-                             (date (get-date-string "-"))
-                             (up "")
-                             (next "")
-                             (prev "")
-                             (uuid "")
-                             (text "")
-                             (overwrite nil))
-  (let* ((path (merge-pathnames (format nil "~A.dat" name) *dat-dir*)))
-    (if (and (not overwrite) (probe-file path))
-        (message (format nil "name \"~A\" has already been used!" name))
-        (with-open-file (out path
-                             :direction :output
-                             :if-exists :supersede)
-          (format out ":TITLE \"~A\"~%" title)
-          (format out ":DATE \"~A\"~%" date)
-          (format out ":UP \"~A\"~%" up)
-          (format out ":PREV \"~A\"~%" prev)
-          (format out ":NEXT \"~A\"~%" next)
-          (format out ":UUID \"~A\"~%" uuid)
-          (format out ":TEXT~%")
-          (format out "~A" text)))))
+(defun plist-to-dat (name plist overwrite)
+  (if (and (not overwrite) (find-dat name))
+      (message (format nil "~a.dat exists." name))
+      (with-open-file (out (get-file-path name) :direction :output :if-exists :supersede)
+        (do ((n 0 (+ n 2)))
+            ((> n (length plist)) )
+          (if (not (eq (nth n plist) :text))
+              (format out "~S ~S~%" (nth n plist) (nth (1+ n) plist))))
+        (format out ":TEXT~%")
+        (format out "~A" (getf plist :text)))))
+
+(defun make-dat (name &key
+                        (title "")
+                        (date (get-date-string "-"))
+                        (up "")
+                        (next "")
+                        (prev "")
+                        (id"")
+                        (text "")
+                        (overwrite nil))
+  (plist-to-dat name
+                (list :title title
+                      :date date
+                      :up up
+                      :next next
+                      :prev prev
+                      :id id
+                      :text text)
+                overwrite))
+
 
 ;;; make HTML String
 ;;;
@@ -176,12 +189,12 @@
              (setf n (gethash "nth" attr))
              (setf name (gethash "name" attr))
              (setf func (cond ((String= type "project")
-                               #'tripitaka::project)
+                               #'project)
                               ((String= type "page")
                                (cond ((not name)
                                       #'(lambda (prop) (getf plist (string-to-keyword prop))))
                                      ((find-dat name)
-                                      #'(lambda (prop) (getf (file2plist name) (string-to-keyword prop))))
+                                      #'(lambda (prop) (getf (dat-to-plist name) (string-to-keyword prop))))
                                      (t #'any-to-blank)))
                               (t #'any-to-blank)))
              (setf result (if n (nth (parse-integer n) (funcall func prop)) (funcall func prop)))
@@ -196,18 +209,62 @@
                              0
                              plist))))))
 
-(defun make-from-templete (name)
-  (let ((target (file2string (merge-pathnames "templete" *project-dir*))))
+(defun make-from-templete (name templete-name)
+  (let ((target (file2string (merge-pathnames  templete-name  *theme-dir*))))
     (scan-templete target
                    0
-                   (file2plist name))))
+                   (dat-to-plist name))))
 
-(defun make-html (name)
+(defun make-html (name &optional (templete-name "templete"))
   "make html file"
   (if (find-dat name)
       (with-open-file (out (merge-pathnames (format nil "~A.htm" name) *home-dir*)
                            :direction :output
                            :if-exists :supersede)
-        (format out "~A" (make-from-templete name)))
+        (format out "~A" (make-from-templete name templete-name)))
       (message (format nil "name \"~A\" can't be found!" name))))
 
+;;; Static Site Manager
+;;;
+;;;
+
+(defun diary-list ()
+  (sort (file-list "\\d{8}(-\\d+)?.dat$") #'diary<))
+
+(defun make-name (&optional (pre (get-date-string "")) num)
+  (let ((name (format nil "~A~A" pre (if num (format nil "-~A" num) ""))))
+    (if (find-dat name)
+        (make-name pre 1)
+        name)))
+
+(defun make-new-diary ()
+  (let ((name (make-name))
+        (prev (first (diary-list))))
+    (make-dat name :up "diary" :prev prev)))
+
+(defun diary-update ()
+  (let* ((list (diary-list))
+         (this-name (first list))
+         (prev-name (second list))
+         (this (dat-to-plist this-name))
+         (prev (dat-to-plist prev-name))
+         (diary (dat-to-plist "diary")))
+    (setf (getf diary :text)
+          (format nil "* [~A](~A.htm)#~A~%~A"
+                  this-name
+                  this-name
+                  (getf this :title)
+                  (getf diary :text)))
+    (setf (getf this :id) (gen-id))
+    (setf (getf prev :next) this-name)
+    (plist-to-dat this-name this t)
+    (plist-to-dat prev-name prev t)
+    (plist-to-dat "diary" diary t)
+    (make-html this-name)
+    (make-html prev-name)
+    (make-html "diary")
+    this))
+    
+    
+
+  

@@ -1,30 +1,36 @@
 ;;;; Make Atom feed utils
 ;;;; Recently this is beta version
 ;;;;
-(eval-when (:load-toplevel :compile-toplevel)
-  (ql:quickload :local-time :silent t)
-  (ql:quickload :cl-markup :silent t)
-  (ql:quickload :uuid :silent t))
-(defpackage :tripitaka-atom
-  (:use :common-lisp)
-  (:export :gen-uuid
-           :iso8601-time
-           :update))
-
-(in-package :tripitaka-atom)
+(in-package :tripitaka)
 
 ;;; Utils for Atom feed
 ;;;
-(defun gen-uuid ()
-  (let ()
-    (uuid:format-as-urn nil (uuid:make-v1-uuid))))
+(defun gen-id-tag-uri (&key authority specific fragment)
+  (let ((date (local-time:format-timestring nil (local-time:now)
+                                            :format (list '(:year 4) #\- '(:month 2) #\- '(:day 2))))
+        (format nil "tag:~A,~A:~A#~A" authority date specific fragment))))
+
+(defun random-hex (num &optional (seq "") (bias 0))
+  (if (> num 1)
+      (random-hex (1- num) (format nil "~A~(~X~)" seq (random 16))))
+      (format nil "~A~(~X~)" seq (random 16)))
+
+
+(defun gen-id-uuid-v4 ()
+  (format nil "urn:uuid:~A-~A-4~A-~A~A-~A"
+          (random-hex 8)
+          (random-hex 4)
+          (random-hex 3)
+          (format nil "~(~X~)" (+ 8 (random 4)))
+          (random-hex 3)
+          (random-hex 12)))
 
 (defun iso8601-time ()
   (local-time:format-timestring nil (local-time:now)))
 
 ;;; make elements
 ;;;
-(defun make-entriy (&key (title "") (link "") (id "") (updated "") (summary ""))
+(defun make-entry (&key (title "") (link "") (id "") (updated "") (summary ""))
   (list :title title
         :link link
         :id id
@@ -44,7 +50,7 @@
 ;;;
 (defun entries->list (entry-hash)
   (loop for k being the hash-keys in entry-hash using (hash-value v)
-     collect (cons k (entry-string v))))
+     collect (cons k v)))
 
 (defun list->entries (entry-list)
   (let ((hash (make-hash-table :test #'equal)))
@@ -63,7 +69,7 @@
   (with-open-file (out filepath
                        :direction :output
                        :if-exists :supersede)
-    (print out (feed4save feed))))
+    (print (feed4save feed) out)))
 
 (defun load-feed-helper (feed)
   (list :title (getf feed :title)
@@ -80,15 +86,15 @@
 
 ;;;
 ;;;
-(defun enrty-string (entry)
+(defun entry-string (entry)
   (concatenate 'string
                (format nil "<entry>~%")
                (format nil "<title>~A</title>~%" (getf entry :title))
                (format nil "<link href=\"~A\"/>~%" (getf entry :link))
-               (formar nil "<id>~A</id>~%" (getf entry :id))
+               (format nil "<id>~A</id>~%" (getf entry :id))
                (format nil "<updated>~A</updated>~%" (getf entry :updated))
                (format nil "<summary>~A</summary>~%" (getf entry :summary))
-               (fromat nil "</entry>~%")))
+               (format nil "</entry>~%")))
 
 (defun entries-string (entry-hash)
   (apply #'concatenate 'string
@@ -101,13 +107,13 @@
                (format nil "<feed xmlns=\"http://www.w3.org/2005/Atom\">~%")
                (format nil "<title>~A</title>~%" (getf feed :title))
                (format nil "<link href=\"~A\"/>~%" (getf feed :link))
-               (formar nil "<id>~A</id>~%" (getf feed :id))
+               (format nil "<id>~A</id>~%" (getf feed :id))
                (format nil "<updated>~A</updated>~%" (getf feed :updated))
                (format nil "<author>~%<name>~A</name>~%</auhtor>~%" (getf feed :updated))
                (entries-string (getf feed :entries))
                (format nil "</feed>")))
 
-(defun write-feed (feed file)
+(defun write-feed (feed filepath)
   (with-open-file (out filepath
                        :direction :output
                        :if-exists :supersede)
@@ -124,13 +130,13 @@
   (setf (getf feed :updated) updated)
   (add-entry entry feed))
 
-(defun update (dat file &key (title "") (link "") (id "") (updated (iso8601-time)) (summary ""))  
-  (let ((feed (feed-load dat))
-        (entry (make-feed :title title
-                          :link link
-                          :id id
-                          :updated updated
-                          :summary summary)))
+(defun update-atom (dat file &key (title "") (link "") (id "") (updated (iso8601-time)) (summary ""))  
+  (let ((feed (load-feed dat))
+        (entry (make-entry :title title
+                           :link link
+                           :id id
+                           :updated updated
+                           :summary summary)))
     (update-entry entry feed updated)
     (write-feed feed file)
     (save-feed feed dat)))
