@@ -7,8 +7,8 @@
 ;;;
 (defun gen-id-tag-uri (&key authority specific fragment)
   (let ((date (local-time:format-timestring nil (local-time:now)
-                                            :format (list '(:year 4) #\- '(:month 2) #\- '(:day 2))))
-        (format nil "tag:~A,~A:~A#~A" authority date specific fragment))))
+                                            :format (list '(:year 4) #\- '(:month 2) #\- '(:day 2)))))
+        (format nil "tag:~A,~A:~A#~A" authority date specific fragment)))
 
 (defun random-hex (num &optional (seq "") (bias 0))
   (if (> num 1)

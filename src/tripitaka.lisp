@@ -48,6 +48,9 @@
   (declare (ignore any)) 
   "")
 
+(defun make-dir (dir-path)
+  (ensure-directories-exist (cl-fad:pathname-as-directory dir-path)))
+
 ;;; System
 ;;;
 (defun message (text)
@@ -74,12 +77,17 @@
   (setf *theme-dir* (merge-pathnames "theme/" *project-dir*))
   (load-project))
 
-(defun ready ()
-  (set-project (read-rc)))
-
 (defun project (name)
   "get value from config"
   (getf *project* (string-to-keyword name)))
+
+(defun set-id-func ()
+  (setf gen-id (lambda () (gen-id-uuid-v4))))
+
+(defun ready ()
+  (set-project (read-rc))
+  (set-id-func))
+
 
 ;;; Utils for tripitaka
 ;;;
@@ -120,7 +128,7 @@
           (setf sym (read in-line nil nil))
           (setf val (read in-line nil nil))
           (setf (getf plist sym) (if val val ""))))
-      (do ((result "" (format nil "~a~&~a" result line))
+      (do ((result "" (format nil "~a~%~a" result line))
            (line (read-line in nil nil) (read-line in nil nil)))
           ((not line)
            (setf (getf plist :text) (md-to-html-string result))))
@@ -135,7 +143,8 @@
       (format out ":site-name \"\"~%")
       (format out ":site-url \"\"~%")
       (format out ":author \"\"~%")
-      (format out ":pubyear \"\"~%"))))
+      (format out ":pubyear \"\"~%")
+      (format out ":id \"\"~%"))))
 
 (defun plist-to-dat (name plist overwrite)
   (if (and (not overwrite) (find-dat name))
@@ -171,7 +180,7 @@
 ;;; make HTML String
 ;;;
 ;;;
-(defun scan-templete (target start-pos plist &optional (count 0))
+(defun scan-template (target start-pos plist &optional (count 0))
   (let (type prop n name func result (attr (make-hash-table :test #'equal)))
     (multiple-value-bind (start end svect evect) 
         (cl-ppcre:scan "<tri:([^\\s]+)(?:\\s+([A-Za-z]+)=\"([^\\s\"]+|)\")+\\s*>" target :start start-pos)
@@ -198,30 +207,30 @@
                                      (t #'any-to-blank)))
                               (t #'any-to-blank)))
              (setf result (if n (nth (parse-integer n) (funcall func prop)) (funcall func prop)))
-             (scan-templete (format nil "~A~A~A" (subseq target 0 start) result (subseq target end))
+             (scan-template (format nil "~A~A~A" (subseq target 0 start) result (subseq target end))
                             (+ start (length result))
                             plist
                             (1+ count)))
             ((= count 0)
               target)
              (t
-              (scan-templete target
+              (scan-template target
                              0
                              plist))))))
 
-(defun make-from-templete (name templete-name)
-  (let ((target (file2string (merge-pathnames  templete-name  *theme-dir*))))
-    (scan-templete target
+(defun make-from-template (name template-name)
+  (let ((target (file2string (merge-pathnames  template-name  *theme-dir*))))
+    (scan-template target
                    0
                    (dat-to-plist name))))
 
-(defun make-html (name &optional (templete-name "templete"))
+(defun make-html (name &optional (template-name "template"))
   "make html file"
   (if (find-dat name)
       (with-open-file (out (merge-pathnames (format nil "~A.htm" name) *home-dir*)
                            :direction :output
                            :if-exists :supersede)
-        (format out "~A" (make-from-templete name templete-name)))
+        (format out "~A" (make-from-template name template-name)))
       (message (format nil "name \"~A\" can't be found!" name))))
 
 ;;; Static Site Manager
