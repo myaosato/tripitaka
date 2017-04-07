@@ -17,8 +17,9 @@
 (defvar *theme-dir* "")
 (defvar *project-file* "")
 (defvar *project* nil)
-(defvar *site-url* "")
-(defvar *site-name* "")
+(defvar *feed-dat* "")
+(defvar *feed-atom* "")
+(defvar *gen-id* (lambda () nil))
 
 ;;; Utils
 ;;;
@@ -75,6 +76,8 @@
   (setf *home-dir* (merge-pathnames "home/" *project-dir*))
   (setf *dat-dir* (merge-pathnames "dat/" *project-dir*))
   (setf *theme-dir* (merge-pathnames "theme/" *project-dir*))
+  (setf *feed-dat* (merge-pathnames "feed" *project-dir*))
+  (setf *feed-atom* (merge-pathnames "feed.xml" *home-dir*))
   (load-project))
 
 (defun project (name)
@@ -82,11 +85,12 @@
   (getf *project* (string-to-keyword name)))
 
 (defun set-id-func ()
-  (setf gen-id (lambda () (gen-id-uuid-v4))))
+  (setf *gen-id* (lambda () (gen-id-uuid-v4))))
 
 (defun ready ()
   (set-project (read-rc))
-  (set-id-func))
+  (set-id-func)
+  (message "preparation is finished"))
 
 
 ;;; Utils for tripitaka
@@ -113,6 +117,10 @@
 
 (defun get-file-path (name)
   (merge-pathnames (format nil "~A.dat" name) *dat-dir*))
+
+(defun get-url (name)
+  (format nil "~A/~A.htm" (string-right-trim "/" (project "site-url")) name))
+
 ;;; Make plist from file 
 ;;;
 (defun md-to-html-string (target)
@@ -251,7 +259,15 @@
         (prev (first (diary-list))))
     (make-dat name :up "diary" :prev prev)))
 
-(defun diary-update ()
+(defun update-page (name)
+  (let* ((page (dat-to-plist name))
+         (id (getf page :id)))
+    (if (or (not id) (equal "" id))
+        (setf (getf page :id) (funcall *gen-id*)))
+    (plist-to-dat name page t)
+    (make-html name)))
+
+(defun update-diary ()
   (let* ((list (diary-list))
          (this-name (first list))
          (prev-name (second list))
@@ -264,7 +280,7 @@
                   this-name
                   (getf this :title)
                   (getf diary :text)))
-    (setf (getf this :id) (gen-id))
+    (setf (getf this :id) (funcall *gen-id*))
     (setf (getf prev :next) this-name)
     (plist-to-dat this-name this t)
     (plist-to-dat prev-name prev t)
@@ -274,6 +290,18 @@
     (make-html "diary")
     this))
     
-    
-
+(defun update-default-feed (name comment)
+  (let ((this (dat-to-plist name)))
+    (update-atom *feed-dat*
+                 *feed-atom*
+                 :title (getf this :title)
+                 :link (get-url name)
+                 :id (getf this :id)
+                 :summary comment)))
   
+(defun update-diary-with-feed (comment)
+  (let* ((list (diary-list))
+         (this-name (first list)))
+    (update-diary)
+    (update-default-feed this-name comment)))
+

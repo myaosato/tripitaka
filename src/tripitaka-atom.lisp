@@ -1,7 +1,8 @@
 ;;;; Make Atom feed utils
-;;;; Recently this is beta version
+;;;; 
 ;;;;
 (in-package :tripitaka)
+
 
 ;;; Utils for Atom feed
 ;;;
@@ -10,10 +11,10 @@
                                             :format (list '(:year 4) #\- '(:month 2) #\- '(:day 2)))))
         (format nil "tag:~A,~A:~A#~A" authority date specific fragment)))
 
-(defun random-hex (num &optional (seq "") (bias 0))
+(defun random-hex (num &optional (seq ""))
   (if (> num 1)
-      (random-hex (1- num) (format nil "~A~(~X~)" seq (random 16))))
-      (format nil "~A~(~X~)" seq (random 16)))
+      (random-hex (1- num) (format nil "~A~(~X~)" seq (random 16)))
+      (format nil "~A~(~X~)" seq (random 16))))
 
 
 (defun gen-id-uuid-v4 ()
@@ -37,7 +38,11 @@
         :updated updated
         :summary summary))
 
-(defun make-feed (&key (title "") (link "") (id "") (updated "") (author "") 
+(defun make-feed (&key (title (project "site-name"))
+                    (link (project "site-url"))
+                    (id (gen-id-uuid-v4))
+                    (updated (iso8601-time))
+                    (author (project "author")) 
                     (entries (make-hash-table :test #'equal)))
   (list :title title
         :link link
@@ -61,7 +66,7 @@
   (list :title (getf feed :title)
         :link (getf feed :link)
         :id (getf feed :id)
-        :updated (getf feed :update)
+        :updated (getf feed :updated)
         :author (getf feed :author)
         :entries (entries->list (getf feed :entries))))
 
@@ -80,9 +85,11 @@
         :entries (list->entries (getf feed :entries))))
 
 (defun load-feed (filepath)
-  (with-open-file (in filepath)
-    (with-standard-io-syntax
-      (load-feed-helper (read in)))))
+  (if (probe-file filepath)
+      (with-open-file (in filepath)
+        (with-standard-io-syntax
+          (load-feed-helper (read in))))
+      (make-feed)))
 
 ;;;
 ;;;
@@ -109,7 +116,7 @@
                (format nil "<link href=\"~A\"/>~%" (getf feed :link))
                (format nil "<id>~A</id>~%" (getf feed :id))
                (format nil "<updated>~A</updated>~%" (getf feed :updated))
-               (format nil "<author>~%<name>~A</name>~%</auhtor>~%" (getf feed :updated))
+               (format nil "<author>~%<name>~A</name>~%</author>~%" (getf feed :author))
                (entries-string (getf feed :entries))
                (format nil "</feed>")))
 

@@ -14,5 +14,7 @@
            :dat-to-plist
            :make-html
            :make-new-diary
-           :diary-update))
+           :update-diary
+           :update-default-feed
+           :update-diary-with-feed))
 
