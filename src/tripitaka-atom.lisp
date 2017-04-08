@@ -60,7 +60,8 @@
 (defun list->entries (entry-list)
   (let ((hash (make-hash-table :test #'equal)))
     (loop for k-v in entry-list
-       do (setf (gethash (car k-v) hash) (cdr k-v)))))
+       do (setf (gethash (car k-v) hash) (cdr k-v)))
+    hash))
 
 (defun feed4save (feed)
   (list :title (getf feed :title)
@@ -80,7 +81,7 @@
   (list :title (getf feed :title)
         :link (getf feed :link)
         :id (getf feed :id)
-        :updated (getf feed :update)
+        :updated (getf feed :updated)
         :author (getf feed :author)
         :entries (list->entries (getf feed :entries))))
 

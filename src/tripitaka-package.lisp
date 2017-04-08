@@ -15,6 +15,7 @@
            :make-html
            :make-new-diary
            :update-diary
+           :update-page
            :update-default-feed
            :update-diary-with-feed))
 
