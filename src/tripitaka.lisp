@@ -10,15 +10,14 @@
 (defvar *rc-file* (merge-pathnames #p".tripitakarc"
                                           (user-homedir-pathname)))
 (defvar *projects-plist* nil)
-(defvar *project-dir*
-  (cl-fad:pathname-as-directory "~/default-project/"))
-(defvar *home-dir* "")
-(defvar *dat-dir* "")
-(defvar *theme-dir* "")
-(defvar *project-file* "")
+(defvar *project-dir* nil)
+(defvar *home-dir* nil)
+(defvar *dat-dir* nil)
+(defvar *theme-dir* nil)
+(defvar *project-file* nil)
 (defvar *project* nil)
-(defvar *feed-dat* "")
-(defvar *feed-atom* "")
+(defvar *feed-dat* nil)
+(defvar *feed-atom* nil)
 (defvar *gen-id* (lambda () nil))
 
 ;;; Utils
@@ -50,7 +49,7 @@
   "")
 
 (defun make-dir (dir-path)
-  (ensure-directories-exist (cl-fad:pathname-as-directory dir-path)))
+  (second (multiple-value-list (ensure-directories-exist (cl-fad:pathname-as-directory dir-path)))))
 
 (defun md-to-html-string (target)
   (nth 1 (multiple-value-list (cl-markdown:markdown target :stream nil))))
@@ -58,13 +57,26 @@
 ;;; System
 ;;;
 (defun message (text &optional (result nil))
-  (format t "TRIPITAKA: ~A~%" text)
+  (format t "~&TRIPITAKA: ~A~%" text)
   result)
 
 ;;; Initialize
 ;;;
+(defun make-rc-file ()
+  (with-open-file (out *rc-file*
+                       :direction :output
+                       :if-exists :error)
+    (format out ":sample #p\"~~/tripitaka/sample/\""))
+  (message "~/.tripitakarc was created.")
+  (when (make-dir (merge-pathnames #p"tripitaka/sample/" (user-homedir-pathname)))
+    (make-project :dir (merge-pathnames #p"tripitaka/sample/" (user-homedir-pathname)))
+    (message "~/tripitaka/sample/ was created."))
+  (message "If you want to try sample, please copy sample/ directory to ~/tripitaka/sample/"))
+
 (defun read-rc ()
   "read .tripitakarc"
+  (unless (probe-file *rc-file*)
+    (make-rc-file))
   (setf *projects-plist* (read-sym-str-file *rc-file*))
   (symbol-name (first *projects-plist*)))
 
@@ -76,13 +88,14 @@
   "set project config"
   (setf *project-dir*
         (cl-fad:pathname-as-directory (getf *projects-plist* (string-to-keyword project))))
-  (setf *project-file* (merge-pathnames ".project" *project-dir*))
+  (setf *project-file* (merge-pathnames "project" *project-dir*))
   (setf *home-dir* (merge-pathnames "home/" *project-dir*))
   (setf *dat-dir* (merge-pathnames "dat/" *project-dir*))
   (setf *theme-dir* (merge-pathnames "theme/" *project-dir*))
   (setf *feed-dat* (merge-pathnames "feed" *project-dir*))
   (setf *feed-atom* (merge-pathnames "feed.xml" *home-dir*))
-  (load-project))
+  (load-project)
+  (message (format nil "~A is selected." project)))
 
 (defun project (name)
   "get value from config"
@@ -152,9 +165,9 @@
 
 ;;; Make new files
 ;;;
-(defun make-project (name)
-  (let* ((pdir (getf *project* name))
-         (conf-file (merge-pathnames ".project" pdir)))
+(defun make-project (&key (name nil) (dir nil))
+  (let* ((pdir (if dir dir (getf *projects-plist* (string-to-keyword name))))
+         (conf-file (merge-pathnames "project" pdir)))
     (with-open-file (out conf-file :direction :output :if-exists :supersede)
       (format out ":site-name \"\"~%")
       (format out ":site-url \"\"~%")
@@ -333,3 +346,8 @@
     (update-diary)
     (update-default-feed this-name comment)))
 
+
+
+;;;
+(eval-when (:load-toplevel :execute)
+  (ready))

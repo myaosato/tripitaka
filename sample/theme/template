@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width = device-width, initial-scale = 1, user-scalable = yes">
+<link rel="stylesheet" type="text/css" href="style.css">
+<link rel="alternate" type="application/atom+xml" title="Atom 1.0" href="feed.xml">
+<title><tri:project prop="site-name"> - <tri:page prop="title"></title>
+</head>
+<body>
+<header id="main-header">
+<h1><a href="index.htm"><tri:project prop="site-name"></a></h1>
+</header>
+<main>
+<header id="article-header">
+<div id="date"><tri:page prop="date"></div>
+<h2 id="title"><tri:page prop="title"></h2>
+</header>
+<div id="article-main">
+<tri:page prop="text">
+</div>
+<footer id="article-footer">
+PREV: <a href="<tri:page prop="prev">.htm"><tri:page prop="title" name="<tri:page prop="prev">"></a>
+NEXT: <a href="<tri:page prop="next">.htm"><tri:page prop="title" name="<tri:page prop="next">"></a>
+</footer>
+</main>
+<footer id="main-footer">
+<div id="copyright">&copy; <tri:project prop="pubyear"> <tri:project prop="author"></div>
+</footer>
+</body>
+</html>

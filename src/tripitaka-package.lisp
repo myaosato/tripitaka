@@ -9,7 +9,7 @@
            :ready
            :read-rc
            :set-project
-           :make-new-project
+           :make-project
            :make-dat
            :dat-to-plist
            :make-html

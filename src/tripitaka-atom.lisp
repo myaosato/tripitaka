@@ -149,3 +149,5 @@
     (write-feed feed file)
     (save-feed feed dat)))
 
+(defun get-feed-id ()
+  (getf (load-feed) :id))
