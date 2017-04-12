@@ -1,12 +1,10 @@
 # Tripitaka
 
----
-
 Tripitaka is static website management library wrtien by Common Lisp.
 
 This product is still a development version.
 
-** Maybe many bugs are still included. X( **
+**Maybe many bugs are still included. X(**
 
 ## Overview
 
