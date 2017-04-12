@@ -24,10 +24,18 @@
 ;;;
 (defun read-sym-str-file (file)
   (with-open-file (in file)
-    (do ((plist nil)
-         (sym (read in nil nil) (read in nil nil)))
-        ((not sym) plist)
-      (setf plist (append plist (list sym (read in nil nil)))))))
+    (read-sym-str-helper in)))
+
+(defun read-sym-str-helper(in &optional (dec nil))
+  (do ((plist nil)
+       (line (read-line in nil nil) (read-line in nil nil)))
+      ((or (not line) (if (functionp dec) (funcall dec line))) plist)
+    (cl-ppcre:register-groups-bind (sym val) (":([^\\s]+)\\s+(.*)" line)
+      (setf plist (append plist (list (string-to-keyword sym) (read-val val)))))))
+
+(defun read-val (exp-str)
+  "still now, just remove \" at both edge"
+  (string-trim "\"" exp-str))
 
 (defun get-date-string (arg)
   "get date as string YYYYMMDD separated by arg"
@@ -89,6 +97,8 @@
   (setf *project-dir*
         (cl-fad:pathname-as-directory (getf *projects-plist* (string-to-keyword project))))
   (setf *project-file* (merge-pathnames "project" *project-dir*))
+  (unless (probe-file *project-file*)
+    (make-project :name project))
   (setf *home-dir* (merge-pathnames "home/" *project-dir*))
   (setf *dat-dir* (merge-pathnames "dat/" *project-dir*))
   (setf *theme-dir* (merge-pathnames "theme/" *project-dir*))
@@ -151,29 +161,28 @@
   "make plist as article from file."
   (let ((plist nil) sym val)
     (with-open-file (in (merge-pathnames (format nil "~A.dat" name) *dat-dir*))
-      (do ((line (read-line in nil nil) (read-line in nil nil)))
-          ((or (find-text-keyword line) (not line)) plist)
-        (with-open-stream (in-line (make-string-input-stream line))
-          (setf sym (read in-line nil nil))
-          (setf val (read in-line nil nil))
-          (setf (getf plist sym) (if val val ""))))
+      (setf plist (read-sym-str-helper in #'find-text-keyword))
       (do ((result "" (format nil "~a~%~a" result line))
            (line (read-line in nil nil) (read-line in nil nil)))
           ((not line)
            (setf (getf plist :text) result)))
-    plist)))
+      plist)))
 
 ;;; Make new files
 ;;;
 (defun make-project (&key (name nil) (dir nil))
   (let* ((pdir (if dir dir (getf *projects-plist* (string-to-keyword name))))
-         (conf-file (merge-pathnames "project" pdir)))
+         (conf-file (merge-pathnames "project" pdir))
+         (home-dir (merge-pathnames "home/" pdir))
+         (dat-dir (merge-pathnames "dat/" pdir)))
     (with-open-file (out conf-file :direction :output :if-exists :supersede)
       (format out ":site-name \"\"~%")
       (format out ":site-url \"\"~%")
       (format out ":author \"\"~%")
       (format out ":pubyear \"\"~%")
-      (format out ":id \"\"~%"))))
+      (format out ":id \"\"~%"))
+    (make-dir home-dir)
+    (make-dir dat-dir)))
 
 (defun plist-to-dat (name plist overwrite)
   (if (and (not overwrite) (find-dat name))
