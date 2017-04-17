@@ -34,8 +34,8 @@
       (setf plist (append plist (list (string-to-keyword sym) (read-val val)))))))
 
 (defun read-val (exp-str)
-  "still now, just remove \" at both edge"
-  (string-trim "\"" exp-str))
+  "still now, just remove \" (and space) at both edge"
+  (string-trim "\"" (string-trim " "exp-str)))
 
 (defun get-date-string (arg)
   "get date as string YYYYMMDD separated by arg"
@@ -258,12 +258,8 @@
                               (+ start (length result))
                               plist
                               (1+ count))))
-            ((= count 0)
-              target)
-             (t
-              (scan-template target
-                             0
-                             plist))))))
+            ((= count 0) target)
+            (t (scan-template target 0 plist))))))
 
 (defun make-from-template (name template-name)
   (let ((target (file2string (merge-pathnames  template-name  *theme-dir*))))

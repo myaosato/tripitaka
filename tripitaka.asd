@@ -7,7 +7,7 @@
 
 (defsystem tripitaka
   :name "tripitaka"
-  :version "0.0.1.2"
+  :version "0.0.1.3"
   :author "Satoaki Miyao"
   :licence "MIT"
   :description "Static Site Maneger"
