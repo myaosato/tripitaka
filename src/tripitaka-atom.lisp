@@ -13,8 +13,8 @@
 
 (defun random-hex (num &optional (seq ""))
   (if (> num 1)
-      (random-hex (1- num) (format nil "~A~(~X~)" seq (random 16)))
-      (format nil "~A~(~X~)" seq (random 16))))
+      (random-hex (1- num) (format nil "~A~(~X~)" seq (random 16 (make-random-state t))))
+      (format nil "~A~(~X~)" seq (random 16 (make-random-state t)))))
 
 
 (defun gen-id-uuid-v4 ()
