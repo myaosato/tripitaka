@@ -74,7 +74,7 @@
   (with-open-file (out *rc-file*
                        :direction :output
                        :if-exists :error)
-    (format out ":sample #p\"~~/tripitaka/sample/\""))
+    (format out ":sample \"~~/tripitaka/sample/\""))
   (message "~/.tripitakarc was created.")
   (when (make-dir (merge-pathnames #p"tripitaka/sample/" (user-homedir-pathname)))
     (make-project :dir (merge-pathnames #p"tripitaka/sample/" (user-homedir-pathname)))
