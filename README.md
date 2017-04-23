@@ -104,7 +104,7 @@ Tripitaka replaces this description with
 
     <h1>SAMPLE WEBSITE</h1>
 
-##### &lt;tri:page prop="title"&gt; and &lt;tri:page prop="title" name="readme"&gt; 
+##### &lt;tri:page prop="bar"&gt; and &lt;tri:page prop="baz" name="qux"&gt; 
 
 In this case, Tripitaka replaces placeholders with value of .dat file that Tripitakba creates html file from.
 
@@ -130,7 +130,7 @@ If you want to refer other file when make index.htm (it is make from index.dat),
 
 Tripitaka convert
 
-    please check <a href="readme.htm"><tri:page prop="title" name="foo"></a>
+    please check <a href="readme.htm"><tri:page prop="title" name="readme"></a>
 
 into
 
