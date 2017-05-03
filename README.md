@@ -26,9 +26,9 @@ When tripitaka.lisp is load, (tripitaka:ready) is called.
 
 #### ~/.tripitakarc
 
-If .tripitakarc file dosen't exist at home directory when (tripitaka:ready) is called, ~/tripitaka/sample/ and ~/.tripitaka are created.
+If .tripitakarc file dosen't exist at home directory when (tripitaka:ready) is called, ~/tripitaka/sample/ and ~/.tripitakarc are created.
 
-If you don't like this situation, please make ~/.tripitaka file like as the following.
+If you don't like this situation, please make ~/.tripitakarc file like as the following.
 
     :project-name "/your/project/directry/path/"
 

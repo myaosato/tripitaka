@@ -191,7 +191,7 @@
         (do ((n 0 (+ n 2)))
             ((>= n (length plist)) )
           (if (not (eq (nth n plist) :text))
-              (format out "~S ~S~%" (nth n plist) (nth (1+ n) plist))))
+              (format out "~S ~A~%" (nth n plist) (nth (1+ n) plist))))
         (format out ":TEXT~%")
         (format out "~A" (getf plist :text))
         t)))
