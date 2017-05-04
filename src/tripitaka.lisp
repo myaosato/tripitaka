@@ -174,6 +174,7 @@
   (let* ((pdir (if dir dir (getf *projects-plist* (string-to-keyword name))))
          (conf-file (merge-pathnames "project" pdir))
          (home-dir (merge-pathnames "home/" pdir))
+         (theme-dir (merge-pathnames "theme/" pdir))
          (dat-dir (merge-pathnames "dat/" pdir)))
     (with-open-file (out conf-file :direction :output :if-exists :supersede)
       (format out ":site-name \"\"~%")
@@ -182,7 +183,8 @@
       (format out ":pubyear \"\"~%")
       (format out ":id \"\"~%"))
     (make-dir home-dir)
-    (make-dir dat-dir)))
+    (make-dir dat-dir)
+    (make-dir theme-dir)))
 
 (defun plist-to-dat (name plist overwrite)
   (if (and (not overwrite) (find-dat name))
