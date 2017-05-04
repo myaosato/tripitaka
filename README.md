@@ -22,7 +22,9 @@ __This documentation is not yet complete.__
 
 ### Prepare directory and files
 
-When tripitaka.lisp is load, (tripitaka:ready) is called.
+Please call function tripitaka:ready.
+
+    CL-USER> (tripitala:ready)
 
 #### ~/.tripitakarc
 
@@ -84,7 +86,7 @@ template files are like HTML. However Tripitaka reads the following placeholders
     <tri:project prop="foo">
     <tri:page prop="bar">
     <tri:page prop="baz" name="qux">
-    
+
 ##### &lt;tri:project prop="foo"&gt;
 
 This placeholder means a property of project file.
@@ -104,7 +106,7 @@ Tripitaka replaces this description with
 
     <h1>SAMPLE WEBSITE</h1>
 
-##### &lt;tri:page prop="bar"&gt; and &lt;tri:page prop="baz" name="qux"&gt; 
+##### &lt;tri:page prop="bar"&gt; and &lt;tri:page prop="baz" name="qux"&gt;
 
 In this case, Tripitaka replaces placeholders with value of .dat file that Tripitakba creates html file from.
 
@@ -135,7 +137,7 @@ Tripitaka convert
 into
 
     please check <a href="readme.htm">ABOUT THIS WEB SITE</a>
-    
+
 And...
 
 

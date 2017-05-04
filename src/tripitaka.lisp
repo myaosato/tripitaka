@@ -357,8 +357,3 @@
     (update-diary)
     (update-default-feed this-name comment)))
 
-
-
-;;;
-(eval-when (:load-toplevel :execute)
-  (ready))
