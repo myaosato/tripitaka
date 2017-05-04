@@ -283,7 +283,10 @@
 ;;;
 
 (defun diary-list ()
-  (sort (file-list "\\d{8}(-\\d+)?.dat$") #'diary>))
+  (let ((flist (file-list "\\d{8}(-\\d+)?.dat$")))
+    (if flist
+        (sort flist #'diary>)
+        (list ""))))
 
 (defun diary-list-from-page ()
   (sort (if (find-dat "diary")

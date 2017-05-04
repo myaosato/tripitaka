@@ -1,17 +1,16 @@
 (in-package :cl-user)
 (defpackage :tripitaka
   (:use :common-lisp)
-  (:export :mirroring-upload
-           :update-atom
-           :ready
+  (:export :ready
            :read-rc
            :set-project
            :make-project
            :make-dat
            :make-html
+           :update-page
            :make-new-diary
            :update-diary
-           :update-page
+           :update-diary-with-feed
            :update-default-feed
-           :update-diary-with-feed))
+           :update-atom))
 
