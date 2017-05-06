@@ -1,5 +1,5 @@
-:site-name "SAMPLE WEBSITE"
-:site-url "sample://example.com"
-:author "Your Name"
-:pubyear "2017"
-:id ""
+:site-name SAMPLE-WEBSITE
+:site-url sample://example.com
+:author YOUR-NAME
+:pubyear 2017
+:id 

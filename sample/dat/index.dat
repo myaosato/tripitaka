@@ -1,11 +1,10 @@
-:ID ""
-:NEXT ""
-:PREV ""
-:UP ""
-:DATE "2017-04-10"
-:TITLE "README"
+:TITLE README
+:DATE 2017-04-10
+:UP 
+:PREV
+:NEXT 
+:ID 
 :TEXT
-
 Tripitaka is static website management library wrtien by Common Lisp.
 
 This product is still a development version.
@@ -26,4 +25,3 @@ Tripitaka provide the following three
 ### License
 
 This software is released under the MIT License, please check LICENSE.txt.
-

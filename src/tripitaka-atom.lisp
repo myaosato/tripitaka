@@ -16,7 +16,6 @@
       (random-hex (1- num) (format nil "~A~(~X~)" seq (random 16 (make-random-state t))))
       (format nil "~A~(~X~)" seq (random 16 (make-random-state t)))))
 
-
 (defun gen-id-uuid-v4 ()
   (format nil "urn:uuid:~A-~A-4~A-~A~A-~A"
           (random-hex 8)
@@ -74,7 +73,8 @@
 (defun save-feed (feed filepath)
   (with-open-file (out filepath
                        :direction :output
-                       :if-exists :supersede)
+                       :if-exists :supersede
+                       :external-format *charset-utf8*)
     (print (feed4save feed) out)))
 
 (defun load-feed-helper (feed)
@@ -124,7 +124,8 @@
 (defun write-feed (feed filepath)
   (with-open-file (out filepath
                        :direction :output
-                       :if-exists :supersede)
+                       :if-exists :supersede
+                       :external-format *charset-utf8*)
     (format out "~A" (feed-string feed))))
 
 ;;;

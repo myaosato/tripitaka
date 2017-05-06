@@ -73,7 +73,8 @@
 (defun make-rc-file ()
   (with-open-file (out *rc-file*
                        :direction :output
-                       :if-exists :error)
+                       :if-exists :error
+                       :external-format *charset-utf8*)
     (format out ":sample \"~~/tripitaka/sample/\""))
   (message "~/.tripitakarc was created.")
   (when (make-dir (merge-pathnames #p"tripitaka/sample/" (user-homedir-pathname)))
@@ -176,7 +177,10 @@
          (home-dir (merge-pathnames "home/" pdir))
          (theme-dir (merge-pathnames "theme/" pdir))
          (dat-dir (merge-pathnames "dat/" pdir)))
-    (with-open-file (out conf-file :direction :output :if-exists :supersede)
+    (with-open-file (out conf-file
+                         :direction :output
+                         :if-exists :supersede
+                         :external-format *charset-utf8*)
       (format out ":site-name \"\"~%")
       (format out ":site-url \"\"~%")
       (format out ":author \"\"~%")
@@ -189,7 +193,10 @@
 (defun plist-to-dat (name plist overwrite)
   (if (and (not overwrite) (find-dat name))
       (message (format nil "~a.dat exists." name))
-      (with-open-file (out (get-file-path name) :direction :output :if-exists :supersede)
+      (with-open-file (out (get-file-path name)
+                           :direction :output
+                           :if-exists :supersede
+                           :external-format *charset-utf8*)
         (do ((n 0 (+ n 2)))
             ((>= n (length plist)) )
           (if (not (eq (nth n plist) :text))
