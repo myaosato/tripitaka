@@ -2,7 +2,6 @@
 ;;;;
 ;;;;
 
-;;; Package
 (in-package :tripitaka)
 
 ;;; Define special valiable
@@ -20,62 +19,112 @@
 (defvar *feed-atom* nil)
 (defvar *gen-id* (lambda () nil))
 
-;;; Utils
-;;;
-(defun read-sym-str-file (file)
-  (with-open-file (in file)
-    (read-sym-str-helper in)))
 
-(defun read-sym-str-helper(in &optional (dec nil))
+;;; plist
+;;;
+(defvar *key-val-reg* "^:([a-zA-Z0-9$%&\\-+_~{}[\\]\\*?@]+)\\s+([^\\s].*)$")
+(defvar *key-only-reg* "^:([a-zA-Z0-9$%&\\-+_~{}[\\]\\*?@]+)\\s*$")
+(defvar *escape-colon-reg* "^:(:.*)$")
+
+(defun key-val-line-p (line)
+  (cl-ppcre:scan *key-val-reg* line))
+
+(defun key-only-line-p (line)
+  (cl-ppcre:scan *key-only-reg* line))
+
+(defun escape-colon-line-p (line)
+  (cl-ppcre:scan *escape-colon-reg* line))
+
+(defun following-line-p (line)
+  (not (or (key-val-line-p line)
+           (key-only-line-p line)
+           (escape-colon-line-p line))))
+
+(defun reverse-plist (plist)
+  (do* ((result nil)
+        (pl plist (cddr pl))
+        (key (car pl) (car pl))
+        (val (cadr pl) (cadr pl)))
+       ((not key) result)
+    (push val result)
+    (push key result)))
+
+(defun read-prop-stream (in)
   (do ((plist nil)
+       (sym nil)
        (line (read-line in nil nil) (read-line in nil nil)))
-      ((or (not line) (if (functionp dec) (funcall dec line))) plist)
-    (cl-ppcre:register-groups-bind (sym val) (":([^\\s]+)\\s+(.*)" line)
-      (setf plist (append plist (list (string-to-keyword sym) (read-val val)))))))
+      ((not line) (reverse-plist plist))
+    (cond ((key-val-line-p line) ;key and value
+           (cl-ppcre:register-groups-bind (key val) (*key-val-reg* line)
+             (setf sym (string-to-keyword key))
+             (setf (getf plist sym) val)))
+          ((key-only-line-p line) ;only key
+           (cl-ppcre:register-groups-bind (key) (*key-only-reg* line)
+             (setf sym (string-to-keyword key))
+             (setf (getf plist sym) "")))
+          ((escape-colon-line-p line) ;::hoge
+           (when (keywordp sym)
+               (cl-ppcre:register-groups-bind (val) (*escape-colon-reg* line)
+                 (setf (getf plist sym) (format nil "~A~%~A" (getf plist sym) val)))))
+          ((following-line-p line) ;following
+           (when (keywordp sym)
+               (setf (getf plist sym) (format nil "~A~%~A" (getf plist sym) line)))))))
 
-(defun read-val (exp-str)
-  "still now, just remove \" (and space) at both edge"
-  (string-trim "\"" (string-trim " "exp-str)))
+(defun read-prop-file (filespec)
+  (if-file-exists-do (filespec)
+   (with-open-file (in filespec)
+     (read-prop-stream in))))
 
-(defun get-date-string (arg)
-  "get date as string YYYYMMDD separated by arg"
-  (local-time:format-timestring nil (local-time:now)
-                                :format (list '(:year 4) arg '(:month 2) arg '(:day 2))))
+(defun set-val (plist key val)
+  (setf (getf plist (string-to-keyword key)) val))
 
-(defun file2string (filespec)
-  (with-open-file (in filespec)
-    (do ((result "")
-         (line (read-line in nil nil) (read-line in nil nil)))
-        ((not line) result)
-      (setf result (format nil "~A~&~A" result line)))))
+(defun get-val (plist key)
+  (let ((val (getf plist (string-to-keyword key))))
+    (if (cl-ppcre:scan "^\\n" val)
+        (subseq val 1)
+        val)))
 
-(defun string-to-keyword (string)
-  (read-from-string (format nil ":~A" string)))
+(defun get-val-as-list (plist key &key sep nth)
+  (let* ((val (get-val plist key))
+         (lst (cond (sep (cl-ppcre:split sep val))
+                    ((cl-ppcre:scan "\\n" val) (cl-ppcre:split "\\n" val))
+                    (t (cl-ppcre:split " " val)))))
+    (if nth
+        (nth nth lst)
+        lst)))
 
-(defun any-to-blank (&rest any)
-  (declare (ignore any)) 
-  "")
+(defun plist-to-string (plist)
+  (with-open-stream (out (make-string-output-stream))
+    (do* ((pl plist (cddr pl))
+          (key (car pl) (car pl))
+          (val (cadr pl) (cadr pl)))
+         ((not key) (get-output-stream-string out))
+      (format out "~&~S ~A" key val))))
+        
+(defun plist-to-file (plist filespec)
+  (with-open-file (out filespec
+                       :direction :output
+                       :if-exists :supersede
+                       :external-format *charset-utf8*)
+    (format out "~A" (plist-to-string plist))))
 
-(defun make-dir (dir-path)
-  (second (multiple-value-list (ensure-directories-exist (cl-fad:pathname-as-directory dir-path)))))
+(defun dat-to-plist (name)
+  (read-prop-file (get-dat-path name)))
 
-(defun md-to-html-string (target)
-  (nth 1 (multiple-value-list (cl-markdown:markdown target :stream nil))))
-
-;;; System
-;;;
-(defun message (text &optional (result nil))
-  (format t "~&TRIPITAKA: ~A~%" text)
-  result)
+(defun plist-to-dat (plist name orveride)
+  (if (and (not orveride) (probe-file (get-dat-path name)))
+      (message (format nil "~a.dat exists." name))
+      (progn
+        (plist-to-file plist (get-dat-path name))
+        t)))
+      
 
 ;;; Initialize
 ;;;
 (defun make-rc-file ()
-  (with-open-file (out *rc-file*
-                       :direction :output
-                       :if-exists :error
-                       :external-format *charset-utf8*)
-    (format out ":sample \"~~/tripitaka/sample/\""))
+  (plist-to-file (list :sample "~/tripitaka/sample/")
+                 *rc-file*
+                 nil)
   (message "~/.tripitakarc was created.")
   (when (make-dir (merge-pathnames #p"tripitaka/sample/" (user-homedir-pathname)))
     (make-project :dir (merge-pathnames #p"tripitaka/sample/" (user-homedir-pathname)))
@@ -86,12 +135,12 @@
   "read .tripitakarc"
   (unless (probe-file *rc-file*)
     (make-rc-file))
-  (setf *projects-plist* (read-sym-str-file *rc-file*))
+  (setf *projects-plist* (read-prop-file *rc-file*))
   (symbol-name (first *projects-plist*)))
 
 (defun load-project ()
   "read config file"
-  (setf *project* (read-sym-str-file *project-file*)))
+  (setf *project* (read-prop-file *project-file*)))
 
 (defun set-project (project)
   "set project config"
@@ -149,25 +198,15 @@
           ((> (nil-to-zero (second lst1)) (nil-to-zero (second lst2))) t)
           (t nil))))
 
-(defun get-file-path (name)
-  (merge-pathnames (format nil "~A.dat" name) *dat-dir*))
+(defun diary-list ()
+  (let ((flist (file-list "\\d{8}(-\\d+)?.dat$")))
+    (if flist
+        (sort flist #'diary>)
+        (list ""))))
 
 (defun get-url (name)
   (format nil "~A/~A.htm" (string-right-trim "/" (project "site-url")) name))
 
-;;; Make plist from file 
-;;;
-
-(defun dat-to-plist (name)
-  "make plist as article from file."
-  (let ((plist nil))
-    (with-open-file (in (merge-pathnames (format nil "~A.dat" name) *dat-dir*))
-      (setf plist (read-sym-str-helper in #'find-text-keyword))
-      (do* ((line (read-line in nil nil) (read-line in nil nil))
-            (result (if line line "") (if line (format nil "~a~%~a" result line) result)))
-          ((not line)
-           (setf (getf plist :text) result)))
-      plist)))
 
 ;;; Make new files
 ;;;
@@ -177,33 +216,15 @@
          (home-dir (merge-pathnames "home/" pdir))
          (theme-dir (merge-pathnames "theme/" pdir))
          (dat-dir (merge-pathnames "dat/" pdir)))
-    (with-open-file (out conf-file
-                         :direction :output
-                         :if-exists :supersede
-                         :external-format *charset-utf8*)
-      (format out ":site-name \"\"~%")
-      (format out ":site-url \"\"~%")
-      (format out ":author \"\"~%")
-      (format out ":pubyear \"\"~%")
-      (format out ":id \"\"~%"))
+    (plist-to-file (list :site-name ""
+                         :site-url ""
+                         :author ""
+                         :pubyear ""
+                         :id "")
+                   conf-file)
     (make-dir home-dir)
     (make-dir dat-dir)
     (make-dir theme-dir)))
-
-(defun plist-to-dat (name plist overwrite)
-  (if (and (not overwrite) (find-dat name))
-      (message (format nil "~a.dat exists." name))
-      (with-open-file (out (get-file-path name)
-                           :direction :output
-                           :if-exists :supersede
-                           :external-format *charset-utf8*)
-        (do ((n 0 (+ n 2)))
-            ((>= n (length plist)) )
-          (if (not (eq (nth n plist) :text))
-              (format out "~S ~A~%" (nth n plist) (nth (1+ n) plist))))
-        (format out ":TEXT~%")
-        (format out "~A" (getf plist :text))
-        t)))
 
 (defun make-dat (name &key
                         (title "")
@@ -214,14 +235,14 @@
                         (id "")
                         (text "")
                         (overwrite nil))
-  (plist-to-dat name
-                (list :title title
+  (plist-to-dat (list :title title
                       :date date
                       :up up
                       :next next
                       :prev prev
                       :id id
                       :text text)
+                name
                 overwrite))
 
 
@@ -289,11 +310,6 @@
 ;;;
 ;;;
 
-(defun diary-list ()
-  (let ((flist (file-list "\\d{8}(-\\d+)?.dat$")))
-    (if flist
-        (sort flist #'diary>)
-        (list ""))))
 
 (defun diary-list-from-page ()
   (sort (if (find-dat "diary")
@@ -311,22 +327,29 @@
 
 (defun make-new-diary ()
   (let ((name (make-name))
-        (prev (first (diary-list))))
-    (if (make-dat name :up "diary" :prev prev)
+        (prev-name (first (diary-list))))
+    (if (make-dat name :up "diary" :prev prev-name)
         (message (format nil "make ~A~A.dat" *dat-dir* name) t))))
 
 (defun update-page (name &optional (template-name "template"))
   (let* ((page (dat-to-plist name))
          (id (getf page :id)))
     (if (or (not id) (equal "" id))
-        (setf (getf page :id) (funcall *gen-id*)))
-    (plist-to-dat name page t)
+        (set-val page :id (funcall *gen-id*)))
+    (plist-to-dat page name t)
     (make-html name template-name)))
 
 (defun load-diary ()
   (unless (find-dat "diary")
     (make-dat "diary" :title "DIARY"))
   (dat-to-plist "diary"))
+
+(defun add-diary (this-name this diary)
+  (format nil "* [~A](~A.htm)#~A~&~A"
+                  this-name
+                  this-name
+                  (get-val this :title)
+                  (get-val diary :text)))
 
 (defun update-diary (&optional (template-name "template"))
   (let* ((list (diary-list))
@@ -337,20 +360,14 @@
          (diary (load-diary)))
     (when prev-name
       (setf prev (dat-to-plist prev-name))
-      (setf (getf prev :next) this-name)
-      (setf (getf this :prev) prev-name)
-      (plist-to-dat prev-name prev t)
-      (make-html prev-name template-name))
-    (setf (getf diary :text)
-          (format nil "* [~A](~A.htm)#~A~&~A"
-                  this-name
-                  this-name
-                  (getf this :title)
-                  (getf diary :text)))
-    (setf (getf this :id) (funcall *gen-id*))
-    (plist-to-dat this-name this t)
-    (plist-to-dat "diary" diary t)
-    (make-html this-name template-name)
+      (set-val prev :next this-name)
+      (set-val this :prev prev-name)
+      (plist-to-dat prev prev-name t)
+      (make-html prev-name template-name)
+      (plist-to-dat this this-name t))
+    (update-page this-name template-name)
+    (set-val diary :text (add-diary this-name this diary))
+    (plist-to-dat diary "diary" t)
     (make-html "diary" template-name)
     this))
     
