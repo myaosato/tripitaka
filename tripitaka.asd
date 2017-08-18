@@ -7,7 +7,7 @@
 
 (defsystem tripitaka
   :name "tripitaka"
-  :version "0.1.0"
+  :version "1.0.0"
   :author "Satoaki Miyao"
   :licence "MIT"
   :description "Static Site Maneger"
@@ -21,5 +21,5 @@
                              (:file "tripitaka"
                                     :depends-on ("tripitaka-atom" "tripitaka-system"))
                              (:file "tripitaka-update" :depends-on ("tripitaka")))))
-  :depends-on (:cl-fad :cl-ppcre :local-time :cl-markdown :usocket :cl-ftp))
+  :depends-on (:cl-fad :cl-ppcre :local-time :cl-markdown :usocket :cl-ftp :rosa))
 
