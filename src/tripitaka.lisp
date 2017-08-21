@@ -167,7 +167,7 @@
 (defun ready ()
   (set-project (read-rc))
   (set-id-func)
-  (message "preparation is finished"))
+  (message "preparation is finished. This is developping Version"))
 
 ;;; Utils for tripitaka
 ;;;

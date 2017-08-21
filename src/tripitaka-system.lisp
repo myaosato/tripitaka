@@ -1,9 +1,23 @@
 (in-package :tripitaka)
 
+(defvar *rc-file* (merge-pathnames #p".tripitakarc"
+                                          (user-homedir-pathname)))
+(defvar *projects-plist* nil)
+(defvar *project-dir* nil)
+(defvar *home-dir* nil)
+(defvar *data-dir* nil)
+(defvar *theme-dir* nil)
+(defvar *project-file* nil)
+(defvar *project* nil)
+(defvar *feed-dat* nil)
+(defvar *feed-atom* nil)
+
+(defvar *gen-id* (lambda () nil))
+
 (defvar *no-file-err* "Such file is not found.")
 
 (defun message (text &optional (result nil))
-  (format t "~&TRIPITAKA: ~A~%" text)
+  (format t "~&TRIPITAKA> ~A~%" text)
   result)
 
 (defmacro if-file-exists-do ((filespec) &body body)
@@ -13,18 +27,18 @@
          (message (format nil "~A ~A" *no-file-err* filespec))
          nil)))
        
-(defun get-dat-path (name)
-  (merge-pathnames (format nil "~A.dat" name) *dat-dir*))
+(defun get-data-path (name)
+  (merge-pathnames (format nil "~A.rosa" name) *dat-dir*))
 
-(defun get-htm-path (name)
-  (merge-pathnames (format nil "~A.htm" name) *home-dir*))
+(defun get-html-path (name)
+  (merge-pathnames (format nil "~A.html" name) *home-dir*))
 
 (defun get-date-string (arg)
   "get date as string YYYYMMDD separated by arg"
   (local-time:format-timestring nil (local-time:now)
                                 :format (list '(:year 4) arg '(:month 2) arg '(:day 2))))
 
-(defun file2string (filespec)
+(defun file->string (filespec)
   (with-open-file (in filespec)
     (do ((result "")
          (line (read-line in nil nil) (read-line in nil nil)))

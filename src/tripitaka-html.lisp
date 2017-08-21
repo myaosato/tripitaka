@@ -1,13 +1,15 @@
 (in-package :tripitaka)
 
+
+(defvar *no-end-tags* (make-hash-table))
+(defvar *no-end-tag-list* 
+  '(:br :img :hr :meta :input :embed :area :base :col :keygen :link :param :source))
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *no-end-tags* (make-hash-table))
-  (defvar *no-end-tag-list* 
-    '(:br :img :hr :meta :input :embed :area :base :col :keygen :link :param :source))
   (mapcar (lambda (key) (setf (gethash key *no-end-tags*) t))
           *no-end-tag-list*))
+
 (defvar *open-tag-format* "<~A~{ ~A~:[~;=~:*~S~]~}>")
-(defvar *no-end-tag-format* "<~A~{ ~A~:[~;=~:*~S~]~} />")
+(defvar *no-end-tag-format* "<~A~{ ~A~:[~;=~:*~S~]~}/>")
 
 (defun make-html-from-stream (stream)
   (make-html (read stream)))

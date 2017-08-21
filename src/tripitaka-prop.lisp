@@ -1,7 +1,7 @@
 (in-package :tripitaka)
 
 (defun name->file (name)
-  (merge-pathnames *dat-dir* (concatenate 'string name ".dat")))
+  (merge-pathnames *data-dir* (concatenate 'string name ".rosa")))
 
 (defun file->data (path)
   (with-open-file (in path)
@@ -14,7 +14,7 @@
   (with-open-file (out path :direction :output :if-exists :supersede)
     (princ (rosa:indite data) out)))
 
-(defun data->file-by-name (name file)
+(defun data->file-by-name (data name)
   (with-open-file (out (name->file name) :direction :output :if-exists :supersede)
     (princ (rosa:indite data) out)))
 
