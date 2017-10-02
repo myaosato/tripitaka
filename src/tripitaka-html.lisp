@@ -1,34 +1,16 @@
 (in-package :tripitaka)
 
+;; var
 
-(defvar *no-end-tags* (make-hash-table))
-(defvar *no-end-tag-list* 
-  '(:br :img :hr :meta :input :embed :area :base :col :keygen :link :param :source))
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (mapcar (lambda (key) (setf (gethash key *no-end-tags*) t))
-          *no-end-tag-list*))
+(eval-when (:load-toplevel :compile-toplevel)
+  (defvar *tri-functions* (make-hash-table))
+  (defvar *no-end-tags* (make-hash-table))
+  (defvar *no-end-tag-list* 
+    '(:br :img :hr :meta :input :embed :area :base :col :keygen :link :param :source))
+  (defvar *open-tag-format* "<~A~{ ~A~:[~;=~:*~S~]~}>")
+  (defvar *no-end-tag-format* "<~A~{ ~A~:[~;=~:*~S~]~}/>"))
 
-(defvar *open-tag-format* "<~A~{ ~A~:[~;=~:*~S~]~}>")
-(defvar *no-end-tag-format* "<~A~{ ~A~:[~;=~:*~S~]~}/>")
-
-(defun make-html-from-stream (stream)
-  (make-html (read stream)))
-
-(defun make-html-from-file (path)
-  (with-open-file (in path)
-    (make-html-from-stream in)))
-
-(defun eval-in-make-html (sexp)
-  (eval-as-cl-with-your-eval sexp :eval-fn #'make-html))
-
-(defun eval-as-cl-with-your-eval (sexp &key (eval-fn #'eval))
-  (apply (get-function (car sexp)) (mapcar eval-fn (cdr sexp))))
-
-(defun get-function (sexp)
-  (cond ((symbolp sexp)
-         (symbol-function sexp))
-        ((eq 'lambda (car sexp))
-         (eval sexp))))
+;; func
 
 (defun no-end-tag-p (key)
   (gethash key *no-end-tags*))
@@ -62,5 +44,21 @@
              (open-tag (car sexp-html) (cadr sexp-html)) 
              (mapcar #'make-html (cddr sexp-html))
              (close-tag (car sexp-html))))
+    ((gethash (car sexp-html) *tri-functions*)
+     (apply (gethash (car sexp-html) *tri-functions*) (mapcar #'make-html (cdr sexp-html))))
     (t
-     (eval-in-make-html sexp-html)))) 
+     "")))
+
+(defun make-html-from-stream (stream)
+  (make-html (read stream)))
+
+(defun make-html-from-file (path)
+  (with-open-file (in path)
+    (make-html-from-stream in)))
+
+(defmacro deftrifun (name args &body body) 
+  `(setf (gethash ',name *tri-functions*) (lambda ,args ,@body)))
+
+;; initialize
+
+(mapcar (lambda (key) (setf (gethash key *no-end-tags*) t)) *no-end-tag-list*)
