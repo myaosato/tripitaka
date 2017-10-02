@@ -1,9 +1,11 @@
 (in-package :tripitaka)
 
+(defvar *dat-dir*)
+(defvar *html-dir*)
+
 (defun dir-p (pathname)
   (and (not (pathname-name pathname))
        (not (pathname-type pathname))))
-
 
 (defun get-file-name (pathname)
   (if (dir-p pathname)
@@ -30,15 +32,16 @@
                                      (get-type-or-dir pathname)))
           (cl-fad:list-directory (cl-fad:pathname-as-directory dir))))
 
-(defun get-data-files ()
-  (let ((all-list (get-children-list *data-dir*)))
+(defun get-files (dir extension)
+  (let ((all-list (get-children-list dir)))
     (append 
-     (remove-if-not (lambda (elt) (equal (nth 2 elt) "rosa") all-list)))))
+     (remove-if-not (lambda (elt) (equal (nth 2 elt) suffix) all-list)))))
+  
+(defun get-data-files ()
+  (get-files *dat-dir* "rosa"))
 
 (defun get-html-files ()
-  (let ((all-list (get-children-list *html-dir*)))
-    (append 
-     (remove-if-not (lambda (elt) (equal (nth 2 elt) "html") all-list)))))
+  (get-files *html-dir* "html"))
 
 (defun get-rosa-file-as-hashtable (file)
   (with-open-file (in file)
