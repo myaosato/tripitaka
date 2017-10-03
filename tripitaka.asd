@@ -15,11 +15,13 @@
   :components ((:module "src"
                 :serial t
                 :components ((:file "tripitaka-package")
-                             (:file "tripitaka-ftp")
-                             (:file "tripitaka-atom")
-                             (:file "tripitaka-system")
-                             (:file "tripitaka"
-                                    :depends-on ("tripitaka-atom" "tripitaka-system"))
-                             (:file "tripitaka-update" :depends-on ("tripitaka")))))
+                             (:file "tripitaka-file"
+                              :depends-on ("tripitaka-package"))
+                             (:file "tripitaka-prop"
+                              :depends-on ("tripitaka-file"))
+                             (:file "tripitaka-converter"
+                              :depends-on ("tripitaka-prop"))
+                             (:file "tripitaka-functions" 
+                              :depends-on ("tripitaka-converter")))))
   :depends-on (:cl-fad :cl-ppcre :local-time :cl-markdown :usocket :cl-ftp :rosa))
 
