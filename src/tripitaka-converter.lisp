@@ -37,6 +37,8 @@
   (cond 
     ((stringp sexp-html)
      (format nil "~A" sexp-html))
+    ((gethash sexp-html *tri-functions*)
+     (gethash sexp-html *tri-functions*))
     ((no-end-tag-p (car sexp-html))
      (format nil "~A" (no-end-tag (car sexp-html) (cadr sexp-html))))
     ((keywordp (car sexp-html))
