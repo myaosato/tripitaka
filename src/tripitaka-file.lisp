@@ -37,7 +37,7 @@
 (defun get-files (dir extension)
   (let ((all-list (get-children-list dir)))
     (append 
-     (remove-if-not (lambda (elt) (equal (nth 2 elt) extension)) all-list)))))
+     (remove-if-not (lambda (elt) (equal (nth 2 elt) extension)) all-list))))
   
 (defun get-data-files ()
   (get-files *dat-dir* "rosa"))
