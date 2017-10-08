@@ -1,7 +1,9 @@
 (in-package :tripitaka)
 
+
 (defvar *dat-dir*)
 (defvar *html-dir*)
+(defvar *sync-file*)
 
 (defun dir-p (pathname)
   (and (not (pathname-name pathname))
@@ -35,7 +37,7 @@
 (defun get-files (dir extension)
   (let ((all-list (get-children-list dir)))
     (append 
-     (remove-if-not (lambda (elt) (equal (nth 2 elt) suffix) all-list)))))
+     (remove-if-not (lambda (elt) (equal (nth 2 elt) extension)) all-list)))))
   
 (defun get-data-files ()
   (get-files *dat-dir* "rosa"))
@@ -50,14 +52,15 @@
 (defun sava-hashtable-as-rosa-file (hashtable file)
   (with-open-file (out file :direction :output :if-exists :supersede)
     (rosa:indite hashtable)))
+
+(defun string-to-symbol (str)
+  (eval (read-from-string (format nil "'~A" str))))
   
 (defun registor-convert-time (name data-timestamp html-timestamp)
-  (let ((sync-data (get-rosa-file-as-hashtable *sync-file*)))
-    (setf (gethash sync-data) (read-from-string (format nil ":|~A|" name)))
-    (save-hashtable-as-rosa-file sync-data *sync-file*)))
-
-
-
+  (let ((sync-hash (get-rosa-file-as-hashtable *sync-file*)))
+    (setf (gethash (string-to-symbol name) sync-hash)
+          (format nil "~A:~A" data-timestamp html-timestamp))
+    (sava-hashtable-as-rosa-file sync-hash *sync-file*)))
 
 
 
