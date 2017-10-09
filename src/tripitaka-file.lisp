@@ -59,7 +59,7 @@
 (defun registor-convert-time (name data-timestamp html-timestamp)
   (let ((sync-hash (get-rosa-file-as-hashtable *sync-file*)))
     (setf (gethash (string-to-symbol name) sync-hash)
-          (format nil "~A:~A" data-timestamp html-timestamp))
+          (format nil "~A>~A" data-timestamp html-timestamp))
     (sava-hashtable-as-rosa-file sync-hash *sync-file*)))
 
 
