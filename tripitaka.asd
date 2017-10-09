@@ -11,17 +11,11 @@
   :author "Satoaki Miyao"
   :licence "MIT"
   :description "Static Site Maneger"
-  :long-description "Static Site Maneger includes html file generator and simple atom feed generator and very simple ftp client"
+  :long-description "Static Site Maneger includes html file generator and simple atom feed genertor and file manager for website"
   :components ((:module "src"
                 :serial t
                 :components ((:file "tripitaka-package")
-                             (:file "tripitaka-file"
-                              :depends-on ("tripitaka-package"))
-                             (:file "tripitaka-prop"
-                              :depends-on ("tripitaka-file"))
-                             (:file "tripitaka-converter"
-                              :depends-on ("tripitaka-prop"))
-                             (:file "tripitaka-functions" 
-                              :depends-on ("tripitaka-converter")))))
-  :depends-on (:cl-fad :cl-ppcre :local-time :cl-markdown :usocket :cl-ftp :rosa))
+                             (:file "tripitaka"
+                              :depends-on ("tripitaka-package")))))
+  :depends-on (:cl-fad :cl-ppcre :local-time :cl-markdown :rosa))
 
