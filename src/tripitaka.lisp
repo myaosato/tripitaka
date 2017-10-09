@@ -1,9 +1,19 @@
+;;; PACKAGE
+(in-package :cl-user)
+
+(defpackage :tripitaka
+  (:use :common-lisp)
+  (:export ))
+
 (in-package :tripitaka)
 
 ;;; VARIABLE
 (eval-when (:load-toplevel :compile-toplevel)
   (defvar *rc-file* (merge-pathnames #p".tripitakarc"
                                      (user-homedir-pathname)))  
+  (defvar *charset-utf8*
+  #+(or sbcl ccl cmu allegro ecl lispworks) :utf-8
+  #+clisp charset:utf-8)
   (defvar *file-cache* (make-hash-table :test 'equal))
   (defvar *projects-plist* nil)
   (defvar *project-dir* nil)
