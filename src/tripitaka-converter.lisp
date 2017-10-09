@@ -48,6 +48,10 @@
              (close-tag (car sexp-html))))
     ((gethash (car sexp-html) *tri-functions*)
      (apply (gethash (car sexp-html) *tri-functions*) (mapcar #'make-html (cdr sexp-html))))
+    ((eq (car sexp-html) 'if) 
+     (if (make-html (cadr sexp-html)) (make-html (caddr sexp-html)) (make-html (cadddr sexp-html))))
+    ((eq (car sexp-html) '=)
+     (String= (make-html (car sexp-html)) (make-html (cadr sexp-html)))) 
     (t
      "")))
 
