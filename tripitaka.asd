@@ -14,8 +14,6 @@
   :long-description "Static Site Maneger includes html file generator and simple atom feed genertor and file manager for website"
   :components ((:module "src"
                 :serial t
-                :components ((:file "tripitaka-package")
-                             (:file "tripitaka"
-                              :depends-on ("tripitaka-package")))))
+                :components ((:file "tripitaka"))))
   :depends-on (:cl-fad :cl-ppcre :local-time :cl-markdown :rosa))
 
