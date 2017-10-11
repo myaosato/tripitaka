@@ -3,7 +3,7 @@
 
 (defpackage :tripitaka
   (:use :common-lisp)
-  (:export ))
+  (:export))
 
 (in-package :tripitaka)
 
@@ -12,16 +12,14 @@
   (defvar *rc-file* (merge-pathnames #p".tripitakarc"
                                      (user-homedir-pathname)))  
   (defvar *charset-utf8*
-  #+(or sbcl ccl cmu allegro ecl lispworks) :utf-8
-  #+clisp charset:utf-8)
+    #+(or sbcl ccl cmu allegro ecl lispworks) :utf-8
+    #+clisp charset:utf-8)
   (defvar *file-cache* (make-hash-table :test 'equal))
-  (defvar *projects-plist* nil)
-  (defvar *project-dir* nil)
   (defvar *theme-dir* nil)
-  (defvar *project-file* nil)
-  (defvar *project* nil)
+  (defvar *current-file-name* "")
   (defvar *dat-dir*)
   (defvar *html-dir*)
+  (defvar *template-dir*)
   (defvar *sync-file*)
   (defvar *tri-functions* (make-hash-table))
   (defvar *no-end-tags* (make-hash-table))
@@ -47,23 +45,16 @@
 (defun md-to-html-string (target)
   (nth 1 (multiple-value-list (cl-markdown:markdown target :stream nil))))
 
-;;; PATH
-(defun get-data-path (name)
-  (merge-pathnames (format nil "~A.rosa" name) *dat-dir*))
-
-(defun get-html-path (name)
-  (merge-pathnames (format nil "~A.html" name) *home-dir*))
-
 ;;; DATA
 (defun file->data (path)
   (with-open-file (in path)
     (rosa:peruse-as-plist in #'string-upcase)))
 
 (defun name->data (name)
-  (let ((date (gethash name)))
+  (let ((data (gethash name *file-cache*)))
     (if data
         data
-        (file->data (get-data-path name)))))
+        (setf (gethash name *file-cache*) (file->data (get-data-path name))))))
 
 (defun data->file (data path)
   (with-open-file (out path :direction :output :if-exists :supersede)
@@ -73,16 +64,19 @@
   (with-open-file (out (name->file name) :direction :output :if-exists :supersede)
     (princ (rosa:indite data) out)))
 
+(defun string-to-keyword (str)
+  (eval (read-from-string (format nil ":~A" (string-upcase str)))))
+
 (defun get-prop-from-data (data prop &optional (type 'string))
-  (cond ((eql type 'list) (coerce (getf data prop) 'list))
-        ((eql type 'vector) (getf data prop))
-        (t (concatenate 'string (getf data prop)))))
+  (cond ((eql type 'list) (coerce (getf data (string-to-keyword prop)) 'list))
+        ((eql type 'vector) (getf data (string-to-keyword prop)))
+        (t (aref (getf data (string-to-keyword prop)) 0))))
 
 (defun get-prop-as-list (data prop)
   (get-prop data prop 'list))
 
 (defun get-prop (name prop &optional (type 'string))
-  (get-prop (name->data name) type))
+  (get-prop-from-data (name->data name) prop))
 
 (defun get-prop-as-list (name prop &optional (type 'string))
   (get-prop name prop 'list))
@@ -131,7 +125,6 @@
 
 (defun get-html-files ()
   (get-files *html-dir* "html"))
-
 
 ;;; MANAGE 
 (defun get-rosa-file-as-hashtable (file)
@@ -210,13 +203,15 @@
 (mapcar (lambda (key) (setf (gethash key *no-end-tags*) t)) *no-end-tag-list*)
 
 ;; FUNCTIONS FOR CONVERTER
-(deftrifun get-prop (name prop) 
+(deftrifun get-prop (prop name) 
+  (if (String= name "*this*")
+      (setf name *current-file-name*))
   (get-prop name prop))
 
 (deftrifun get-prop-as-list (name prop) 
   (get-prop-as-list name prop))
 
-(deftrifun dolist (lst func)
+(deftrifun each (func lst)
   (format nil "~{~A~}" (mapcar func lst)))
 
 (deftrifun anchor (href-label)
@@ -231,7 +226,36 @@
      (loop for elt on list 
            collect '(:li () elt)))))
 
+;;; PATH
+(defun get-data-path (name)
+  (merge-pathnames (format nil "~A.rosa" name) *dat-dir*))
 
+(defun get-html-path (name)
+  (merge-pathnames (format nil "~A.html" name) *home-dir*))
+
+(defun get-template-path (name) 
+  (merge-pathnames name *template-dir*))
+
+;;; ENVIROMENT
+(defun setenv (project-dir)
+  (setf *dat-dir* (merge-pathnames "dat/" project-dir))
+  (setf *html-dir* (merge-pathnames "home/" project-dir))
+  (setf *template-dir* (merge-pathnames "template/" project-dir))
+  (setf *sync-file* (merge-pathnames "sync.rosa" project-dir)))
+
+
+;;; WRITE HTML
+(defun read-template (template-name)
+  (let ((tamplate-path (if template-name
+                           (get-template-path template-name)
+                           (get-template-path "template"))))
+    (with-open-file (in tamplate-path :direction :input)
+        (read in))))
+
+(defun dat-to-html (name &optional template-name)
+ (let ((*current-file-name* name))
+   (with-open-file (out (get-html-path name) :direction :output :if-exists :supersede)
+     (format out "~A" (make-html (read-template template-name))))))
 
 
 
