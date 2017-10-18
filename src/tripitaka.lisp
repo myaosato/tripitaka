@@ -166,7 +166,7 @@
 (defun close-tag (keyword)
   (format nil "</~A>" (string-downcase (symbol-name keyword))))
 
-(defun make-html (sexp-html)
+(defun htmlisp (sexp-html)
   (cond 
     ((stringp sexp-html)
      (format nil "~A" sexp-html))
@@ -177,23 +177,23 @@
     ((keywordp (car sexp-html))
      (format nil "~A~{~A~}~A" 
              (open-tag (car sexp-html) (cadr sexp-html)) 
-             (mapcar #'make-html (cddr sexp-html))
+             (mapcar #'htmlisp (cddr sexp-html))
              (close-tag (car sexp-html))))
     ((gethash (car sexp-html) *tri-functions*)
-     (apply (gethash (car sexp-html) *tri-functions*) (mapcar #'make-html (cdr sexp-html))))
+     (apply (gethash (car sexp-html) *tri-functions*) (mapcar #'htmlisp (cdr sexp-html))))
     ((eq (car sexp-html) 'if) 
-     (if (make-html (cadr sexp-html)) (make-html (caddr sexp-html)) (make-html (cadddr sexp-html))))
+     (if (htmlisp (cadr sexp-html)) (htmlisp (caddr sexp-html)) (htmlisp (cadddr sexp-html))))
     ((eq (car sexp-html) '=)
-     (String= (make-html (car sexp-html)) (make-html (cadr sexp-html)))) 
+     (String= (htmlisp (car sexp-html)) (htmlisp (cadr sexp-html)))) 
     (t
      "")))
 
-(defun make-html-from-stream (stream)
-  (make-html (read stream)))
+(defun convert-to-html-from-stream (stream)
+  (htmlisp (read stream)))
 
-(defun make-html-from-file (path)
+(defun convert-into-html-from-file (path)
   (with-open-file (in path)
-    (make-html-from-stream in)))
+    (convert-to-html-from-stream in)))
 
 (defmacro deftrifun (name args &body body) 
   `(setf (gethash ',name *tri-functions*) (lambda ,args ,@body)))
@@ -255,7 +255,7 @@
 (defun dat-to-html (name &optional template-name)
  (let ((*current-file-name* name))
    (with-open-file (out (get-html-path name) :direction :output :if-exists :supersede)
-     (format out "~A" (make-html (read-template template-name))))))
+     (format out "~A" (convert-to-html-from-stream (read-template template-name))))))
 
 
 
