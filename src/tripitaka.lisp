@@ -3,7 +3,7 @@
 
 (defpackage :tripitaka
   (:use :common-lisp)
-  (:export))
+  (:export :update-all))
 
 (in-package :tripitaka)
 
@@ -245,7 +245,6 @@
   (setf *template-dir* (merge-pathnames "template/" project-dir))
   (setf *sync-file* (merge-pathnames "sync.rosa" project-dir)))
 
-
 ;;; WRITE HTML
 (defun read-template (template-name)
   (let ((tamplate-path (if template-name
@@ -261,3 +260,6 @@
      (format out "~A" (convert-to-html-from-stream (read-template template-name))))
    (registor-convert-time name)))
 
+(defun update-all ()
+  (mapcar (lamnda (elt) (dat-to-heml (pathname-name (car elt))))
+          (get-data-files)))
