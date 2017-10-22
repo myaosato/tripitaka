@@ -3,7 +3,8 @@
 
 (defpackage :tripitaka
   (:use :common-lisp)
-  (:export :update-all))
+  (:export :update-all
+           :update))
 
 (in-package :tripitaka)
 
@@ -129,6 +130,14 @@
   (with-open-file (in file)
     (rosa:peruse in)))
 
+(defun get-sync-hash ()
+  (get-rosa-file-as-hashtable *sync-file*))
+
+(defun get-convert-time (name)
+  (aref
+   (gethash (string-to-symbol name) (get-rosa-file-as-hashtable *sync-file*))
+   0))
+
 (defun sava-hashtable-as-rosa-file (hashtable file)
   (with-open-file (out file :direction :output :if-exists :supersede)
     (rosa:indite hashtable)))
@@ -140,11 +149,15 @@
   (let ((sync-hash (get-rosa-file-as-hashtable *sync-file*)))
     (setf (gethash (string-to-symbol name) sync-hash)
           timestamp)
-    (sava-hashtable-as-rosa-file sync-hash *sync-file*)))
+    (sava-hashtable-as-rosa-file sync-hash *sync-file*))
+  timestamp)
 
 (defun registor-convert-time (name)
   (%registor-convert-time name 
                           (file-write-date (get-data-path name))))
+
+(defun is-converted (name)
+  (String= (get-convert-time name) (file-write-date (get-data-path name))))
 
 ;;; CONVERTER
 (defun no-end-tag-p (key)
@@ -262,4 +275,10 @@
 
 (defun update-all ()
   (mapcar (lamnda (elt) (dat-to-heml (pathname-name (car elt))))
+          (get-data-files)))
+
+(defun update ()
+  (mapcar (lamnda (elt) (if (is-converted name)  
+                            nil 
+                            (dat-to-heml (pathname-name (car elt)))))
           (get-data-files)))
