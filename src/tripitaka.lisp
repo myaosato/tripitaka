@@ -61,7 +61,7 @@
     (princ (rosa:indite data) out)))
 
 (defun data->file-by-name (data name)
-  (with-open-file (out (name->file name) :direction :output :if-exists :supersede)
+  (with-open-file (out (get-data-path name) :direction :output :if-exists :supersede)
     (princ (rosa:indite data) out)))
 
 (defun string-to-keyword (str)
@@ -72,14 +72,11 @@
         ((eql type 'vector) (getf data (string-to-keyword prop)))
         (t (aref (getf data (string-to-keyword prop)) 0))))
 
-(defun get-prop-as-list (data prop)
-  (get-prop data prop 'list))
+(defun get-prop-as-list (name prop)
+  (get-prop-from-data (name->data name) prop 'list))
 
-(defun get-prop (name prop &optional (type 'string))
-  (get-prop-from-data (name->data name) prop))
-
-(defun get-prop-as-list (name prop &optional (type 'string))
-  (get-prop name prop 'list))
+(defun get-prop (name prop)
+  (get-prop-from-data (name->data name) prop 'string))
 
 (defun set-prop (data prop value)
   (cond ((listp value) (setf (getf data prop) (coerce value 'vector)))
@@ -110,15 +107,16 @@
               (pathname-type pathname))))
 
 (defun get-children-list (dir)
-  (mapcar #'(lambda (pathname) (list (get-file-name pathname)
-                                     (get-write-time pathname)
+  (mapcar #'(lambda (pathname) (list pathname
+                                     (get-file-name pathname)
+                                     (file-write-date pathname)
                                      (get-type-or-dir pathname)))
           (cl-fad:list-directory (cl-fad:pathname-as-directory dir))))
 
 (defun get-files (dir extension)
   (let ((all-list (get-children-list dir)))
     (append 
-     (remove-if-not (lambda (elt) (equal (nth 2 elt) extension)) all-list))))
+     (remove-if-not (lambda (elt) (equal (nth 3 elt) extension)) all-list))))
 
 (defun get-data-files ()
   (get-files *dat-dir* "rosa"))
@@ -138,11 +136,15 @@
 (defun string-to-symbol (str)
   (eval (read-from-string (format nil "'~A" str))))
   
-(defun registor-convert-time (name data-timestamp html-timestamp)
+(defun %registor-convert-time (name timestamp)
   (let ((sync-hash (get-rosa-file-as-hashtable *sync-file*)))
     (setf (gethash (string-to-symbol name) sync-hash)
-          (format nil "~A>~A" data-timestamp html-timestamp))
+          timestamp)
     (sava-hashtable-as-rosa-file sync-hash *sync-file*)))
+
+(defun registor-convert-time (name)
+  (%registor-convert-time name 
+                          (file-write-date (get-data-path name))))
 
 ;;; CONVERTER
 (defun no-end-tag-p (key)
@@ -215,23 +217,23 @@
   (format nil "~{~A~}" (mapcar func lst)))
 
 (deftrifun anchor (href-label)
-  (make-html (list :a (list :href (first href-label)) (second href-label))))
+  (htmlisp (list :a (list :href (first href-label)) (second href-label))))
 
 (deftrifun sexp-list (&rest elts)
   (apply #'list elts))
 
 (deftrifun ul (list)
-  (make-html 
-   '(list :ul ()  
-     (loop for elt on list 
-           collect '(:li () elt)))))
+  (htmlisp 
+   (list :ul ()  
+         (loop for elt on list 
+               collect '(:li () elt)))))
 
 ;;; PATH
 (defun get-data-path (name)
   (merge-pathnames (format nil "~A.rosa" name) *dat-dir*))
 
 (defun get-html-path (name)
-  (merge-pathnames (format nil "~A.html" name) *home-dir*))
+  (merge-pathnames (format nil "~A.html" name) *html-dir*))
 
 (defun get-template-path (name) 
   (merge-pathnames name *template-dir*))
@@ -255,11 +257,7 @@
 (defun dat-to-html (name &optional template-name)
  (let ((*current-file-name* name))
    (with-open-file (out (get-html-path name) :direction :output :if-exists :supersede)
-     (format out "~A" (convert-to-html-from-stream (read-template template-name))))))
-
-
-
-
-
-
+     (format out "<!doctype html>~%")
+     (format out "~A" (convert-to-html-from-stream (read-template template-name))))
+   (registor-convert-time name)))
 
