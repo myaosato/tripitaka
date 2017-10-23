@@ -46,6 +46,11 @@
 (defun cwd ()
   (pathname (truename ".")))
 
+(defun exist-file-in-cwd (name) 
+  (some (lambda (elt) 
+          (equal (merge-pathnames name (cwd)) elt))
+        (cl-fad:list-directory (cwd))))
+
 ;;; MARKDOWN
 (defun md-to-html-string (target)
   (nth 1 (multiple-value-list (cl-markdown:markdown target :stream nil))))
@@ -293,3 +298,4 @@
                             nil 
                             (dat-to-html (pathname-name (car elt)))))
           (get-data-files)))
+
