@@ -10,11 +10,10 @@
 
 ;;; VARIABLE
 (eval-when (:load-toplevel :compile-toplevel)
-  (defvar *rc-file* (merge-pathnames #p".tripitakarc"
-                                     (user-homedir-pathname)))  
   (defvar *charset-utf8*
     #+(or sbcl ccl cmu allegro ecl lispworks) :utf-8
     #+clisp charset:utf-8)
+  (defvar *project-dir*)
   (defvar *file-cache* (make-hash-table :test 'equal))
   (defvar *theme-dir* nil)
   (defvar *current-file-name* "")
@@ -22,6 +21,8 @@
   (defvar *html-dir*)
   (defvar *template-dir*)
   (defvar *sync-file*)
+  (defvar *ignore* (make-hash-table))
+  (defvar *templetes* (make-hash-table))
   (defvar *tri-functions* (make-hash-table))
   (defvar *no-end-tags* (make-hash-table))
   (defvar *no-end-tag-list* 
@@ -41,6 +42,9 @@
 (defun make-dir (dir-path)
   (second (multiple-value-list (ensure-directories-exist
                                 (cl-fad:pathname-as-directory dir-path)))))
+
+(defun cwd ()
+  (pathname (truename ".")))
 
 ;;; MARKDOWN
 (defun md-to-html-string (target)
@@ -258,6 +262,13 @@
   (setf *template-dir* (merge-pathnames "template/" project-dir))
   (setf *sync-file* (merge-pathnames "sync.rosa" project-dir)))
 
+;;; SETTING
+
+(defun findproject ())
+(defun read-project-file ())
+
+
+
 ;;; WRITE HTML
 (defun read-template (template-name)
   (let ((tamplate-path (if template-name
@@ -274,11 +285,11 @@
    (registor-convert-time name)))
 
 (defun update-all ()
-  (mapcar (lamnda (elt) (dat-to-heml (pathname-name (car elt))))
+  (mapcar (lambda (elt) (dat-to-html (pathname-name (car elt))))
           (get-data-files)))
 
 (defun update ()
-  (mapcar (lamnda (elt) (if (is-converted name)  
+  (mapcar (lambda (elt) (if (is-converted (pathname-name (car elt)))  
                             nil 
-                            (dat-to-heml (pathname-name (car elt)))))
+                            (dat-to-html (pathname-name (car elt)))))
           (get-data-files)))
