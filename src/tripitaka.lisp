@@ -14,6 +14,7 @@
     #+(or sbcl ccl cmu allegro ecl lispworks) :utf-8
     #+clisp charset:utf-8)
   (defvar *project-dir*)
+  (defvar *project-file*)
   (defvar *file-cache* (make-hash-table :test 'equal))
   (defvar *theme-dir* nil)
   (defvar *current-file-name* "")
@@ -44,12 +45,12 @@
                                 (cl-fad:pathname-as-directory dir-path)))))
 
 (defun current-dir ()
-  (pathname (truename ".")))
+  (pathname (truename "./")))
 
-(defun exist-file-in-current-dir (name) 
+(defun exist-file-in-dir (name dir) 
   (some (lambda (elt) 
-          (equal (merge-pathnames name (cwd)) elt))
-        (cl-fad:list-directory (cwd))))
+          (equal (merge-pathnames name dir) elt))
+        (cl-fad:list-directory dir)))
 
 ;;; MARKDOWN
 (defun md-to-html-string (target)
@@ -264,17 +265,27 @@
 
 ;;; ENVIROMENT
 (defun setenv (project-dir)
+  (setf *project-file* (merge-pathnames ".tripitaka" project-dir))
   (setf *dat-dir* (merge-pathnames "dat/" project-dir))
   (setf *html-dir* (merge-pathnames "home/" project-dir))
   (setf *template-dir* (merge-pathnames "template/" project-dir))
   (setf *sync-file* (merge-pathnames "sync.rosa" project-dir)))
 
 ;;; SETTING
+(defun %find-project-dir (path-string)
+  (if (exist-file-in-dir ".tripitaka" (pathname (truename path-string)))
+      path
+      (if (equal path #P"/")
+          nil
+          (%findproject-dir (concatenate 'string "../" path-string)))))
 
-(defun findproject ())
-(defun read-project-file ())
+(defun find-project-dir ()
+  (%findproject-dir "./"))
 
-
+(defun initialize ()
+  (let ((project-dir (findproject-dir)))
+    (if project-dir
+        (setenv project-dir))))
 
 ;;; WRITE HTML
 (defun read-template (template-name)
