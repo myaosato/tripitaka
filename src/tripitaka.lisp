@@ -227,10 +227,12 @@
 (mapcar (lambda (key) (setf (gethash key *no-end-tags*) t)) *no-end-tag-list*)
 
 ;; FUNCTIONS FOR CONVERTER
-(deftrifun get-prop (prop name) 
+(deftrifun get-prop (prop name type) 
   (if (String= name "*this*")
       (setf name *current-file-name*))
-  (get-prop name prop))
+  (if (String= type "md")
+      (cl-markdown:markdown (get-prop name prop))
+      (get-prop name prop)))
 
 (deftrifun get-prop-as-list (name prop) 
   (get-prop-as-list name prop))
