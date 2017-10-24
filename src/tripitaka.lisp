@@ -43,10 +43,10 @@
   (second (multiple-value-list (ensure-directories-exist
                                 (cl-fad:pathname-as-directory dir-path)))))
 
-(defun cwd ()
+(defun current-dir ()
   (pathname (truename ".")))
 
-(defun exist-file-in-cwd (name) 
+(defun exist-file-in-current-dir (name) 
   (some (lambda (elt) 
           (equal (merge-pathnames name (cwd)) elt))
         (cl-fad:list-directory (cwd))))
