@@ -288,6 +288,7 @@
         (setenv project-dir))))
 
 ;;; WRITE HTML
+
 (defun read-template (template-name)
   (let ((tamplate-path (if template-name
                            (get-template-path template-name)
@@ -295,12 +296,16 @@
     (with-open-file (in tamplate-path :direction :input)
         (read in))))
 
+(defun post-proc (name)
+  nil)
+
 (defun dat-to-html (name &optional template-name)
  (let ((*current-file-name* name))
    (with-open-file (out (get-html-path name) :direction :output :if-exists :supersede)
      (format out "<!doctype html>~%")
      (format out "~A" (convert-to-html-from-stream (read-template template-name))))
-   (registor-convert-time name)))
+   (registor-convert-time name)
+   (post-proc name)))
 
 (defun update-all ()
   (mapcar (lambda (elt) (dat-to-html (pathname-name (car elt))))
