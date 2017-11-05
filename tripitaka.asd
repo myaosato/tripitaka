@@ -15,5 +15,5 @@
   :components ((:module "src"
                 :serial t
                 :components ((:file "tripitaka"))))
-  :depends-on (:cl-fad :cl-ppcre :local-time :cl-markdown :rosa))
+  :depends-on (:cl-fad :cl-ppcre :local-time :cl-markdown :alexandria :rosa))
 

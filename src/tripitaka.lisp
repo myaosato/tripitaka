@@ -16,6 +16,7 @@
   (defvar *project-dir*)
   (defvar *project-file*)
   (defvar *file-cache* (make-hash-table :test 'equal))
+  (defvar *templates* (make-hash-table :test 'equal))
   (defvar *theme-dir* nil)
   (defvar *current-file-name* "")
   (defvar *dat-dir*)
@@ -267,6 +268,15 @@
   (merge-pathnames name *template-dir*))
 
 ;;; ENVIROMENT
+(defun set-templates (project-data)
+  (setf *templates* (alexandria:plist-hash-table (getf project-data :templates) :test 'equal)))
+
+(defun read-project ()
+  (let ((project-data))
+    (with-open-file (in *project-file*)
+      (setf project-data (read in)))
+    (set-templates project-data)))
+
 (defun setenv (project-dir)
   (setf *project-file* (merge-pathnames ".tripitaka" project-dir))
   (setf *dat-dir* (merge-pathnames "dat/" project-dir))
@@ -291,16 +301,19 @@
         (setenv project-dir))))
 
 ;;; WRITE HTML
-
 (defun read-template (template-name)
-  (let ((tamplate-path (if template-name
-                           (get-template-path template-name)
-                           (get-template-path "template"))))
+  (let ((tamplate-path (get-template-path template-name)))
     (with-open-file (in tamplate-path :direction :input)
         (read in))))
 
 (defun post-proc (name)
   nil)
+
+(defun get-template-name (name)
+  (let ((template-name (gethash name *templates*)))
+    (if template-name
+        template-name
+        "template")))
 
 (defun dat-to-html (name &optional template-name)
  (let ((*current-file-name* name))
@@ -316,7 +329,7 @@
 
 (defun update ()
   (mapcar (lambda (elt) (if (is-converted (pathname-name (car elt)))  
-                            nil 
+                            nil
                             (dat-to-html (pathname-name (car elt)))))
           (get-data-files)))
 
