@@ -220,7 +220,7 @@
   (with-open-file (in path)
     (convert-to-html-from-stream in)))
 
-(defmacro deftrifun (name args &body body) 
+(defmacro depftrifun (name args &body body) 
   `(setf (gethash ',name *tri-functions*) (lambda ,args ,@body)))
 
 ;;; INITIALIZE
@@ -229,7 +229,7 @@
 
 ;; FUNCTIONS FOR CONVERTER
 (deftrifun get-prop (prop name type) 
-  (if (String= name "*this*")
+  (if (String= name "this")
       (setf name *current-file-name*))
   (if (String= type "md")
       (cl-markdown:markdown (get-prop name prop))
@@ -241,8 +241,8 @@
 (deftrifun each (func lst)
   (format nil "~{~A~}" (mapcar func lst)))
 
-(deftrifun anchor (href-label)
-  (htmlisp (list :a (list :href (first href-label)) (second href-label))))
+(deftrifun anchor (href label)
+  (htmlisp (list :a (list :href href) label)))
 
 (deftrifun sexp-list (&rest elts)
   (apply #'list elts))
@@ -252,6 +252,9 @@
    (list :ul ()  
          (loop for elt on list 
                collect '(:li () elt)))))
+
+(deftrifun string-add (str1 str2)
+  (concatenate 'string str1 str2))
 
 ;;; PATH
 (defun get-data-path (name)
@@ -316,4 +319,10 @@
                             nil 
                             (dat-to-html (pathname-name (car elt)))))
           (get-data-files)))
+
+;;; ATOM
+;;;; TODO 
+
+;;; AGGREGATION
+;;;; TODO
 
