@@ -10,8 +10,8 @@
   :version "1.0.0"
   :author "Satoaki Miyao"
   :licence "MIT"
-  :description "Static Site Maneger"
-  :long-description "Static Site Maneger includes html file generator and simple atom feed genertor and file manager for website"
+  :description "static site generator"
+  :long-description "Tripitaka is a simple static site generator. It make html file from template files and simple structured text files."
   :components ((:module "src"
                 :serial t
                 :components ((:file "tripitaka"))))
