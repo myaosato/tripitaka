@@ -3,8 +3,7 @@
 
 (defpackage :tripitaka
   (:use :common-lisp)
-  (:export :update-all
-           :update))
+  (:export :tripitaka))
 
 (in-package :tripitaka)
 
@@ -342,4 +341,13 @@
 
 ;;; AGGREGATION
 ;;;; TODO
+
+;;; EXPORTED FUNCTION
+(defun tripitaka (cmd &rest args)
+  (initialize)
+  (cond ((String= cmd "to-html") (dat-to-html (car args)))
+        ((String= cmd "update-all") (update-all))
+        ((String= cmd "update") (update))
+        (t nil)))
+  
 
