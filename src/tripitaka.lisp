@@ -296,6 +296,7 @@
   (%findproject-dir "./"))
 
 (defun initialize ()
+  (setf *read-eval* nil)
   (let ((project-dir (findproject-dir)))
     (if project-dir
         (setenv project-dir))))
@@ -315,7 +316,10 @@
         template-name
         "template")))
 
-(defun dat-to-html (name &optional template-name)
+(defun dat-to-html (name)
+  (%dat-to-html name (get-template-name name)))
+
+(defun %dat-to-html (name &optional template-name)
  (let ((*current-file-name* name))
    (with-open-file (out (get-html-path name) :direction :output :if-exists :supersede)
      (format out "<!doctype html>~%")
