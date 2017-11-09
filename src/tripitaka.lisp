@@ -294,9 +294,9 @@
 (defun find-project-dir ()
   (%findproject-dir "./"))
 
-(defun initialize ()
+(defun initialize (dir)
   (setf *read-eval* nil)
-  (let ((project-dir (findproject-dir)))
+  (let ((project-dir (if dir dir (findproject-dir))))
     (if project-dir
         (setenv project-dir))))
 
@@ -344,8 +344,14 @@
 
 ;;; EXPORTED FUNCTION
 (defun tripitaka (cmd &rest args)
-  (initialize)
-  (cond ((String= cmd "to-html") (dat-to-html (car args)))
+  (comand-router :cmd cmd :args args :dir nil))
+
+(defun cmd-specify-dir (cmd args dir)
+  (comand-router :cmd cmd :args args :dir nil))
+
+(defun comannd-router (&key cmd args dir)
+  (initialize dir)
+  (cond ((String= cmd "to-html") (dat-to-html (car arg-list)))
         ((String= cmd "update-all") (update-all))
         ((String= cmd "update") (update))
         (t nil)))
