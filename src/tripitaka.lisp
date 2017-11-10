@@ -90,8 +90,9 @@
   (get-prop-from-data (name->data name) prop 'string))
 
 (defun set-prop (data prop value)
-  (cond ((listp value) (setf (getf data prop) (coerce value 'vector)))
-        (t (setf (getf data prop) #((princ-to-string value))))))
+  (unless (listp value) 
+        (setf value (list (princ-to-string value))))
+  (setf (getf data (string-to-keyword prop)) (coerce value 'vector)))
 
 ;;; FILE-LIST  
 (defun dir-p (pathname)
@@ -124,16 +125,16 @@
                                      (get-type-or-dir pathname)))
           (cl-fad:list-directory (cl-fad:pathname-as-directory dir))))
 
-(defun get-files (dir extension)
+(defun get-file-list (dir extension)
   (let ((all-list (get-children-list dir)))
     (append 
      (remove-if-not (lambda (elt) (equal (nth 3 elt) extension)) all-list))))
 
-(defun get-data-files ()
-  (get-files *dat-dir* "rosa"))
+(defun get-data-file-list ()
+  (get-file-list *dat-dir* "rosa"))
 
-(defun get-html-files ()
-  (get-files *html-dir* "html"))
+(defun get-html-file-list ()
+  (get-file-list *html-dir* "html"))
 
 ;;; MANAGE 
 (defun get-rosa-file-as-hashtable (file)
@@ -220,7 +221,7 @@
   (with-open-file (in path)
     (convert-to-html-from-stream in)))
 
-(defmacro depftrifun (name args &body body) 
+(defmacro deftrifun (name args &body body) 
   `(setf (gethash ',name *tri-functions*) (lambda ,args ,@body)))
 
 ;;; INITIALIZE
@@ -285,20 +286,22 @@
 
 ;;; SETTING
 (defun %find-project-dir (path-string)
-  (if (exist-file-in-dir ".tripitaka" (pathname (truename path-string)))
-      path
-      (if (equal path #P"/")
-          nil
-          (%findproject-dir (concatenate 'string "../" path-string)))))
+  (let ((path (pathname (truename path-string))))
+    (if (exist-file-in-dir ".tripitaka" path)
+        path
+        (if (equal path #P"/")
+            nil
+            (%find-project-dir (concatenate 'string "../" path-string))))))
 
 (defun find-project-dir ()
-  (%findproject-dir "./"))
+  (%find-project-dir "./"))
 
 (defun initialize (dir)
-  (setf *read-eval* nil)
-  (let ((project-dir (if dir dir (findproject-dir))))
-    (if project-dir
-        (setenv project-dir))))
+  (let ((dir-path (cl-fad:pathname-as-directory dir)))
+    (setf *read-eval* nil)
+    (let ((project-dir (if dir-path dir-path (find-project-dir))))
+      (if project-dir
+          (setenv project-dir)))))
 
 ;;; WRITE HTML
 (defun read-template (template-name)
@@ -307,6 +310,7 @@
         (read in))))
 
 (defun post-proc (name)
+  name
   nil)
 
 (defun get-template-name (name)
@@ -328,32 +332,37 @@
 
 (defun update-all ()
   (mapcar (lambda (elt) (dat-to-html (pathname-name (car elt))))
-          (get-data-files)))
+          (get-data-file-list)))
 
 (defun update ()
   (mapcar (lambda (elt) (if (is-converted (pathname-name (car elt)))  
                             nil
                             (dat-to-html (pathname-name (car elt)))))
-          (get-data-files)))
+          (get-data-file-list)))
 
 ;;; ATOM
 ;;;; TODO 
 
 ;;; AGGREGATION
 ;;;; TODO
+(defun add-value (name prop value)
+  (let ((dat (name->data name)))
+    (set-prop dat prop value)
+    (get-prop-as-list name prop)))
 
+        
+    
 ;;; EXPORTED FUNCTION
+(defun comand-router (&key cmd args dir)
+  (initialize dir)
+  (cond ((String= cmd "to-html") (dat-to-html (car args)))
+        ((String= cmd "update-all") (update-all))
+        ((String= cmd "update") (update))
+        (t nil)))
+
 (defun tripitaka (cmd &rest args)
   (comand-router :cmd cmd :args args :dir nil))
 
 (defun cmd-specify-dir (cmd args dir)
-  (comand-router :cmd cmd :args args :dir nil))
-
-(defun comannd-router (&key cmd args dir)
-  (initialize dir)
-  (cond ((String= cmd "to-html") (dat-to-html (car arg-list)))
-        ((String= cmd "update-all") (update-all))
-        ((String= cmd "update") (update))
-        (t nil)))
-  
+  (comand-router :cmd cmd :args args :dir dir))  
 
