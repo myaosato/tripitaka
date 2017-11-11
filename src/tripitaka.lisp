@@ -72,8 +72,10 @@
     (princ (rosa:indite data) out)))
 
 (defun data->file-by-name (data name)
-  (with-open-file (out (get-data-path name) :direction :output :if-exists :supersede)
-    (princ (rosa:indite data) out)))
+  (data->file data (get-data-path name)))
+
+(defun save-file (name)
+  (data->file-by-name (name->data name) name))
 
 (defun string-to-keyword (str)
   (eval (read-from-string (format nil ":~A" (string-upcase str)))))
@@ -89,10 +91,17 @@
 (defun get-prop (name prop)
   (get-prop-from-data (name->data name) prop 'string))
 
-(defun set-prop (data prop value)
-  (unless (listp value) 
-        (setf value (list (princ-to-string value))))
-  (setf (getf data (string-to-keyword prop)) (coerce value 'vector)))
+(defun set-prop (name prop value)
+  (let ((data (name->data name)))
+    (unless (listp value) 
+      (setf value (list (princ-to-string value))))
+    (setf (getf data (string-to-keyword prop)) (coerce value 'vector))
+    (setf (gethash name *file-cache*) data)))
+
+(defun add-value (name prop value)
+  (let ((lst (get-prop-as-list name prop)))
+        (set-prop name prop (if lst (cons value lst) value))
+    (get-prop-as-list name prop)))
 
 ;;; FILE-LIST  
 (defun dir-p (pathname)
@@ -309,10 +318,6 @@
     (with-open-file (in tamplate-path :direction :input)
         (read in))))
 
-(defun post-proc (name)
-  name
-  nil)
-
 (defun get-template-name (name)
   (let ((template-name (gethash name *templates*)))
     (if template-name
@@ -340,18 +345,32 @@
                             (dat-to-html (pathname-name (car elt)))))
           (get-data-file-list)))
 
+(defun post-proc (name)
+  (parent-update name))
+
+
 ;;; ATOM
 ;;;; TODO 
 
 ;;; AGGREGATION
-;;;; TODO
-(defun add-value (name prop value)
-  (let ((dat (name->data name)))
-    (set-prop dat prop value)
-    (get-prop-as-list name prop)))
+(defun add-child (parent child)
+  (add-value parent "child" child))
 
-        
+(defun get-parents (name)
+  (let ((parents (get-prop-as-list name "parent")))
+    (if (not (and (<= (length parents) 1) (String= (first parents) "")))
+        prents
+        nil)))
     
+(defun parent-update (name)
+  (dolist (parant (get-parent name))
+    (add-child parent name)
+    (save-data parent)
+    (dat-to-heml name)))
+
+;;; CREATE FILE
+;;;; TODO
+
 ;;; EXPORTED FUNCTION
 (defun comand-router (&key cmd args dir)
   (initialize dir)
