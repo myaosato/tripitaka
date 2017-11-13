@@ -185,10 +185,10 @@
 
 (defun open-or-no-end-tag (keyword attr-list &optional (format-str *open-tag-format*))
   (let ((name (string-downcase (symbol-name keyword)))
-        (attrs (mapcar (lambda (elt) 
-                           (if (symbolp elt) 
-                               (string-downcase (symbol-name elt)) 
-                               elt)) 
+        (attrs (mapcar (lambda (elt)
+                           (if (symbolp elt)
+                               (string-downcase (symbol-name elt))
+                               elt))
                        attr-list)))
     (format nil format-str name attrs)))
 
@@ -203,24 +203,42 @@
 
 (defun htmlisp (sexp-html)
   (cond 
-    ((stringp sexp-html)
+    ((stringp sexp-html) ;; string -> string
      (format nil "~A" sexp-html))
-    ((gethash sexp-html *tri-functions*)
+    ((gethash sexp-html *tri-functions*) ;; symbol of registered function -> registerd function 
      (gethash sexp-html *tri-functions*))
-    ((no-end-tag-p (car sexp-html))
-     (format nil "~A" (no-end-tag (car sexp-html) (cadr sexp-html))))
-    ((keywordp (car sexp-html))
-     (format nil "~A~{~A~}~A" 
-             (open-tag (car sexp-html) (cadr sexp-html)) 
-             (mapcar #'htmlisp (cddr sexp-html))
-             (close-tag (car sexp-html))))
-    ((gethash (car sexp-html) *tri-functions*)
+    ((no-end-tag-p (car sexp-html)) ;; html tag having no end tags -> string (html-tag)
+     (let ((attr-list nil))
+       (cond ((= (length sexp-html) 2)
+              (setf attr-list (cadr sexp-html)))
+             ((/= (length sexp-html) 1)
+              ;;TODO Exception handling
+              nil)
+             (t nil))
+       (format nil "~A" (no-end-tag (car sexp-html) attr-list))))
+    ((keywordp (car sexp-html)) ;; html tag -> string (html-tag)
+     (let ((attr-list nil)
+           (inner-html ""))
+       (cond ((= (length sexp-html) 3)           
+              (setf attr-list (cadr sexp-html))   
+              (setf inner-html (caddr sexp-html)))
+             ((= (length sexp-html) 2)              
+              (setf inner-html (cadr sexp-html)))
+             ((/= (length sexp-html) 1)
+              ;;TODO Exception handling
+              nil)
+             (t nil))
+       (format nil "~A~{~A~}~A" 
+               (open-tag (car sexp-html) attr-list)
+               (mapcar #'htmlisp (caddr sexp-html))
+               (close-tag (car sexp-html)))))
+    ((gethash (car sexp-html) *tri-functions*) ;; list having registered function as first element -> eval registered function rest elements as arguments
      (apply (gethash (car sexp-html) *tri-functions*) (mapcar #'htmlisp (cdr sexp-html))))
-    ((eq (car sexp-html) 'if) 
-     (if (htmlisp (cadr sexp-html)) (htmlisp (caddr sexp-html)) (htmlisp (cadddr sexp-html))))
-    ((eq (car sexp-html) '=)
+    ((eq (car sexp-html) 'if) ;; specail form if
+     (if (htmlisp (cadr sexp-html)) (htmlisp (caddr sexp-html)) (htmlisp (cadddr sexp-html)))) 
+    ((eq (car sexp-html) '=) ;; symbol = -> eval String= with two arguments
      (String= (htmlisp (car sexp-html)) (htmlisp (cadr sexp-html)))) 
-    (t
+    (t ;; others -> blank string
      "")))
 
 (defun convert-to-html-from-stream (stream)
@@ -305,7 +323,7 @@
 (defun find-project-dir ()
   (%find-project-dir "./"))
 
-(defun initialize (dir)
+(defun set-up (dir)
   (let ((dir-path (cl-fad:pathname-as-directory dir)))
     (setf *read-eval* nil)
     (let ((project-dir (if dir-path dir-path (find-project-dir))))
@@ -348,7 +366,6 @@
 (defun post-proc (name)
   (parent-update name))
 
-
 ;;; ATOM
 ;;;; TODO 
 
@@ -371,9 +388,11 @@
 ;;; CREATE FILE
 ;;;; TODO
 
+
+
 ;;; EXPORTED FUNCTION
 (defun comand-router (&key cmd args dir)
-  (initialize dir)
+  (set-up dir)
   (cond ((String= cmd "to-html") (dat-to-html (car args)))
         ((String= cmd "update-all") (update-all))
         ((String= cmd "update") (update))
