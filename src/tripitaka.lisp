@@ -192,6 +192,33 @@
                        attr-list)))
     (format nil format-str name attrs)))
 
+(defun convert-list-to-attribute-format (attr-list &optional (str ""))
+  (cond ((null attr-list) str)
+        ((symbolp (car attr-list))
+         (cond ((stringp (cadr attr-list))
+                (convert-list-to-attribute-format 
+                 (cddr attr-list)
+                 (format nil 
+                         "~A ~A=\"~A\"" 
+                         str
+                         (string-downcase (string (car attr-list)))
+                         (cadr attr-list))))
+               (t
+                (convert-list-to-attribute-format 
+                 (cddr attr-list)
+                 (format nil 
+                         "~A ~A" 
+                         str
+                         (string-downcase (string (car attr-list))))))))
+        (t str)))
+
+(defun make-no-end-tag-string (tag attr-list)
+  (let ((tag-name (string-downcase (string tag))))
+    (if attr-list
+        (format nil "<~A ~A/>" tag-name (convert-list-to-attribute-format attr-list))
+        (format nil "<~A/>" tag-name )))
+  
+
 (defun open-tag (keyword attr-list)
   (open-or-no-end-tag keyword attr-list *open-tag-format*))
 
@@ -208,14 +235,7 @@
     ((gethash sexp-html *tri-functions*) ;; symbol of registered function -> registerd function 
      (gethash sexp-html *tri-functions*))
     ((no-end-tag-p (car sexp-html)) ;; html tag having no end tags -> string (html-tag)
-     (let ((attr-list nil))
-       (cond ((= (length sexp-html) 2)
-              (setf attr-list (cadr sexp-html)))
-             ((/= (length sexp-html) 1)
-              ;;TODO Exception handling
-              nil)
-             (t nil))
-       (format nil "~A" (no-end-tag (car sexp-html) attr-list))))
+     (make-no-end-tag-string (car sexp-html) (cdr sexp-html)))
     ((keywordp (car sexp-html)) ;; html tag -> string (html-tag)
      (let ((attr-list nil)
            (inner-html ""))
