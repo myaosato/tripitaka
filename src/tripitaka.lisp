@@ -183,15 +183,6 @@
 (defun no-end-tag-p (key)
   (gethash key *no-end-tags*))
 
-(defun open-or-no-end-tag (keyword attr-list &optional (format-str *open-tag-format*))
-  (let ((name (string-downcase (symbol-name keyword)))
-        (attrs (mapcar (lambda (elt)
-                           (if (symbolp elt)
-                               (string-downcase (symbol-name elt))
-                               elt))
-                       attr-list)))
-    (format nil format-str name attrs)))
-
 (defun convert-list-to-attribute-format (attr-list &optional (str ""))
   (cond ((null attr-list) str)
         ((symbolp (car attr-list))
@@ -212,54 +203,58 @@
                          (string-downcase (string (car attr-list))))))))
         (t str)))
 
-(defun make-no-end-tag-string (tag attr-list)
+(defun make-no-end-tag-element-string (tag attr-list)
   (let ((tag-name (string-downcase (string tag))))
-    (if attr-list
-        (format nil "<~A ~A/>" tag-name (convert-list-to-attribute-format attr-list))
-        (format nil "<~A/>" tag-name )))
-  
+    (format nil "<~A~A />" tag-name (convert-list-to-attribute-format attr-list))))
 
-(defun open-tag (keyword attr-list)
-  (open-or-no-end-tag keyword attr-list *open-tag-format*))
-
-(defun no-end-tag (keyword attr-list)
-  (open-or-no-end-tag keyword attr-list *no-end-tag-format*))
-
-(defun close-tag (keyword)
-  (format nil "</~A>" (string-downcase (symbol-name keyword))))
+(defun make-element-string (tag attr-list inner-html)
+  (let ((tag-name (string-downcase (string tag))))
+    (format nil "<~A~A>~A</~A>" 
+            tag-name (convert-list-to-attribute-format attr-list) inner-html tag-name)))
 
 (defun htmlisp (sexp-html)
   (cond 
-    ((stringp sexp-html) ;; string -> string
+    ;; string -> string
+    ((stringp sexp-html) 
      (format nil "~A" sexp-html))
-    ((gethash sexp-html *tri-functions*) ;; symbol of registered function -> registerd function 
+    ;; symbol of registered function -> registerd function 
+    ((gethash sexp-html *tri-functions*) 
      (gethash sexp-html *tri-functions*))
-    ((no-end-tag-p (car sexp-html)) ;; html tag having no end tags -> string (html-tag)
-     (make-no-end-tag-string (car sexp-html) (cdr sexp-html)))
-    ((keywordp (car sexp-html)) ;; html tag -> string (html-tag)
-     (let ((attr-list nil)
+    ;; html tag having no end tags -> string (html-tag)
+    ;; tag inner-html -> <hoge piyo="fuga" />
+    ;; tag -> <hoge />
+    ((no-end-tag-p (car sexp-html)) 
+     (make-no-end-tag-element-string (car sexp-html) 
+                                     (if (listp (cadr sexp-html))
+                                         (mapcar #'htmlisp (cadr sexp-html))
+                                         nil)))
+    ;; html tag -> string (html-tag)
+    ;; tag attr-list inner-html -> <hoge piyo="fuga">hogera...</hoge>
+    ;; tag inner-html -> <hoge>hogera...</hoge>
+    ;; tag -> <hoge></hoge>
+    ((keywordp (car sexp-html)) 
+     (let ((len (length (cdr sexp-html)))
+           (attr-list nil)
            (inner-html ""))
-       (cond ((= (length sexp-html) 3)           
-              (setf attr-list (cadr sexp-html))   
+       (cond ((= 2 len)
+              (setf attr-list (cadr sexp-html))
               (setf inner-html (caddr sexp-html)))
-             ((= (length sexp-html) 2)              
+             ((= 1 len)
               (setf inner-html (cadr sexp-html)))
-             ((/= (length sexp-html) 1)
-              ;;TODO Exception handling
-              nil)
              (t nil))
-       (format nil "~A~{~A~}~A" 
-               (open-tag (car sexp-html) attr-list)
-               (mapcar #'htmlisp (caddr sexp-html))
-               (close-tag (car sexp-html)))))
-    ((gethash (car sexp-html) *tri-functions*) ;; list having registered function as first element -> eval registered function rest elements as arguments
+       (make-element-string (car sexp-html) attr-list inner-html)))
+    ;; list having registered function as first element 
+    ;;   -> eval registered function rest elements as arguments
+    ((gethash (car sexp-html) *tri-functions*) 
      (apply (gethash (car sexp-html) *tri-functions*) (mapcar #'htmlisp (cdr sexp-html))))
-    ((eq (car sexp-html) 'if) ;; specail form if
+    ;; specail form if
+    ((eq (car sexp-html) 'if) 
      (if (htmlisp (cadr sexp-html)) (htmlisp (caddr sexp-html)) (htmlisp (cadddr sexp-html)))) 
-    ((eq (car sexp-html) '=) ;; symbol = -> eval String= with two arguments
+    ;; symbol = -> eval String= with two arguments
+    ((eq (car sexp-html) '=) 
      (String= (htmlisp (car sexp-html)) (htmlisp (cadr sexp-html)))) 
-    (t ;; others -> blank string
-     "")))
+    ;; others -> blank string
+    (t  "")))
 
 (defun convert-to-html-from-stream (stream)
   (htmlisp (read stream)))
