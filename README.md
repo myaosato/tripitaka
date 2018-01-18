@@ -1,7 +1,7 @@
 # Tripitaka
 
 
-This project is depreceted. If you are interested in a static site generator written by Common Lisp, please check new project [atsuage](https://github.com/myaosato/atsuage)
+This project is deprecated. If you are interested in a static site generator written by Common Lisp, please check new project [atsuage](https://github.com/myaosato/atsuage)
 
 
 
