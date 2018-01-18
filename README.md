@@ -1,5 +1,14 @@
 # Tripitaka
 
+
+This project is depreceted. If you are interested in a static site generator written by Common Lisp, please check new project [atsuage](https://github.com/myaosato/atsuage)
+
+
+
+
+
+
+
 Tripitaka is static website management library wrtien by Common Lisp.
 
 This product is still a development version.
